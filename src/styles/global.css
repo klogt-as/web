@@ -157,3 +157,108 @@ hr {
   /* added line to stop words getting smushed together (as they go onto separate lines and some screen readers do not understand line feeds as a space */
   white-space: nowrap;
 }
+
+/* ========================================
+   Animated Gradient Blob Backgrounds
+   ======================================== */
+
+.blob-container {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.5;
+  will-change: transform;
+  animation-timing-function: ease-in-out;
+}
+
+.blob-1 {
+  width: 50vw;
+  height: 50vw;
+  max-width: 600px;
+  max-height: 600px;
+  top: -10%;
+  left: -10%;
+  animation: blob-float-1 25s ease-in-out infinite, blob-pulse 8s ease-in-out infinite;
+}
+
+.blob-2 {
+  width: 45vw;
+  height: 45vw;
+  max-width: 500px;
+  max-height: 500px;
+  bottom: -15%;
+  right: -10%;
+  animation: blob-float-2 30s ease-in-out infinite, blob-pulse 10s ease-in-out infinite 2s;
+}
+
+.blob-3 {
+  width: 35vw;
+  height: 35vw;
+  max-width: 400px;
+  max-height: 400px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: blob-float-3 20s ease-in-out infinite, blob-pulse 6s ease-in-out infinite 4s;
+}
+
+/* Keyframe animations for smooth floating movement */
+@keyframes blob-float-1 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(10%, 15%) scale(1.1);
+  }
+  50% {
+    transform: translate(5%, 25%) scale(0.95);
+  }
+  75% {
+    transform: translate(-5%, 10%) scale(1.05);
+  }
+}
+
+@keyframes blob-float-2 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(-15%, -10%) scale(1.05);
+  }
+  50% {
+    transform: translate(-5%, -20%) scale(1.1);
+  }
+  75% {
+    transform: translate(10%, -5%) scale(0.95);
+  }
+}
+
+@keyframes blob-float-3 {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1) rotate(0deg);
+  }
+  33% {
+    transform: translate(-40%, -60%) scale(1.15) rotate(120deg);
+  }
+  66% {
+    transform: translate(-60%, -40%) scale(0.9) rotate(240deg);
+  }
+}
+
+/* Pulse animation for subtle breathing effect */
+@keyframes blob-pulse {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
