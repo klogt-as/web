@@ -55,7 +55,12 @@ const Landing: React.FC = () => {
         frameloop="always"
         // Keep DPR capped so the GPU doesn't burn at native high-dpi all the time
         dpr={[1, 1.5]}
-        gl={{ powerPreference: "low-power" }}
+        gl={{
+          powerPreference: "low-power",
+          outputColorSpace: "srgb",
+          toneMapping: 1, // LinearToneMapping - subtle tone mapping that preserves whites better
+          toneMappingExposure: 1.2, // Slightly brighter to preserve bright colors
+        }}
         orthographic // Use orthographic camera for a 2D-like scroll effect
         camera={{ zoom: 80, position: [0, 0, 10] }}
         shadows // Enable shadows for professional "web feel" lighting
