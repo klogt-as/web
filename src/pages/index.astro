@@ -10,6 +10,8 @@ import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
 		<BaseHead title={`${SITE_TITLE} - home`} description={SITE_DESCRIPTION} />
 	</head>
 	<body>
-		<Landing client:only="react" />
+		<div id="landing-root">
+			<Landing client:only="react" />
+		</div>
 	</body>
 </html>

@@ -186,7 +186,8 @@ hr {
   max-height: 600px;
   top: -10%;
   left: -10%;
-  animation: blob-float-1 25s ease-in-out infinite, blob-pulse 8s ease-in-out infinite;
+  animation: blob-float-1 25s ease-in-out infinite,
+    blob-pulse 8s ease-in-out infinite;
 }
 
 .blob-2 {
@@ -196,7 +197,8 @@ hr {
   max-height: 500px;
   bottom: -15%;
   right: -10%;
-  animation: blob-float-2 30s ease-in-out infinite, blob-pulse 10s ease-in-out infinite 2s;
+  animation: blob-float-2 30s ease-in-out infinite,
+    blob-pulse 10s ease-in-out infinite 2s;
 }
 
 .blob-3 {
@@ -207,12 +209,14 @@ hr {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  animation: blob-float-3 20s ease-in-out infinite, blob-pulse 6s ease-in-out infinite 4s;
+  animation: blob-float-3 20s ease-in-out infinite,
+    blob-pulse 6s ease-in-out infinite 4s;
 }
 
 /* Keyframe animations for smooth floating movement */
 @keyframes blob-float-1 {
-  0%, 100% {
+  0%,
+  100% {
     transform: translate(0, 0) scale(1);
   }
   25% {
@@ -227,7 +231,8 @@ hr {
 }
 
 @keyframes blob-float-2 {
-  0%, 100% {
+  0%,
+  100% {
     transform: translate(0, 0) scale(1);
   }
   25% {
@@ -242,7 +247,8 @@ hr {
 }
 
 @keyframes blob-float-3 {
-  0%, 100% {
+  0%,
+  100% {
     transform: translate(-50%, -50%) scale(1) rotate(0deg);
   }
   33% {
@@ -255,10 +261,38 @@ hr {
 
 /* Pulse animation for subtle breathing effect */
 @keyframes blob-pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.4;
   }
   50% {
     opacity: 0.6;
   }
+}
+
+button {
+  font-family: "Atkinson", sans-serif;
+  font-size: 0.75rem;
+}
+
+/* ========================================
+   Liquid Glass Button Hover Effect
+   ======================================== */
+
+button:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.15),
+    rgba(255, 255, 255, 0.08)
+  ) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 0 20px rgba(255, 255, 255, 0.1) !important;
+  transform: translateY(-2px);
+}
+
+button:active {
+  transform: translateY(0px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
 }

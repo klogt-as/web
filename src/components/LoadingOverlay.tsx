@@ -22,12 +22,12 @@ interface LoadingOverlayProps {
 
 /**
  * LoadingOverlay component
- * 
+ *
  * Displays a full-screen black overlay with white percentage text (0-100%)
  * that tracks the loading progress of 3D assets. Once loading is complete,
  * the entire overlay slides upward to reveal the content underneath,
  * which slides in from the bottom.
- * 
+ *
  * Uses a combination of actual asset loading progress from drei's useProgress
  * and simulated progress to ensure smooth visual feedback even when assets
  * load quickly or are cached.
@@ -46,24 +46,24 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
   const [isComplete, setIsComplete] = useState(false);
   const startTimeRef = useRef(Date.now());
   const animationFrameRef = useRef<number>(0);
-  
+
   // Calculate the target progress based on asset loading and minimum time
   const getTargetProgress = useCallback(() => {
     const elapsed = Date.now() - startTimeRef.current;
-    
+
     // Time-based progress (smooth animation over minDisplayTime)
     const timeProgress = Math.min(100, (elapsed / minDisplayTime) * 100);
-    
+
     // If assets are being tracked, use real progress
     // Otherwise, use time-based progress for smooth UX
     const hasAssets = total > 0;
-    
+
     if (hasAssets) {
       // Blend between time progress and asset progress
       // Asset progress takes priority when assets are loading
       return Math.min(100, Math.max(timeProgress * 0.3, assetProgress));
     }
-    
+
     // No assets tracked - use time-based progress with easing
     return Math.min(100, easeOutCubic(elapsed / minDisplayTime) * 100);
   }, [assetProgress, total, minDisplayTime]);
@@ -72,24 +72,24 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
   useEffect(() => {
     const animate = () => {
       const target = getTargetProgress();
-      
+
       setDisplayedProgress((prev) => {
         // Smoothly approach target
         const diff = target - prev;
         const step = Math.max(0.5, Math.abs(diff) * 0.1);
-        
+
         if (Math.abs(diff) < 0.5) {
           return Math.round(target);
         }
-        
+
         return prev + (diff > 0 ? step : -step);
       });
-      
+
       animationFrameRef.current = requestAnimationFrame(animate);
     };
-    
+
     animationFrameRef.current = requestAnimationFrame(animate);
-    
+
     return () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
@@ -102,12 +102,12 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
     if (displayedProgress >= 100 && !isComplete) {
       const elapsed = Date.now() - startTimeRef.current;
       const remainingTime = Math.max(0, minDisplayTime - elapsed);
-      
+
       // Wait for minimum display time before marking complete
       const timer = setTimeout(() => {
         setIsComplete(true);
       }, remainingTime);
-      
+
       return () => clearTimeout(timer);
     }
   }, [displayedProgress, isComplete, minDisplayTime]);
@@ -169,7 +169,6 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#ffffff",
     fontSize: "clamp(4rem, 15vw, 12rem)",
     fontWeight: 700,
-    fontFamily: "system-ui, -apple-system, sans-serif",
     letterSpacing: "-0.02em",
     userSelect: "none",
   },
