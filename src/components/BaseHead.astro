@@ -34,6 +34,13 @@ const { title, description, image = FallbackImage } = Astro.props;
 <link rel="preload" href="/web/fonts/atkinson-regular.woff" as="font" type="font/woff" crossorigin />
 <link rel="preload" href="/web/fonts/atkinson-bold.woff" as="font" type="font/woff" crossorigin />
 
+<!-- Preconnect to speed up resource loading -->
+<link rel="dns-prefetch" href="https://klogt-as.github.io" />
+
+<!-- Preload critical scripts to reduce dependency chain -->
+<link rel="modulepreload" href="/web/_astro/client.BDoyTiox.js" />
+<link rel="modulepreload" href="/web/_astro/client.G6-iVbdB.js" />
+
 <!-- Canonical URL -->
 <link rel="canonical" href={canonicalURL} />
 

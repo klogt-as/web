@@ -1,15 +1,17 @@
 import { Scroll, ScrollControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
-import { Suspense, useState } from "react";
-import LandingScene from "./Landing.scene";
+import { Suspense, useState, lazy } from "react";
 import LoadingOverlay from "./LoadingOverlay";
-import R3FPowerManager from "./R3FPowerManager";
 import { ScrollSnapHandler } from "./ScrollSnapHandler";
 import { ScrollProvider } from "./ScrollContext";
 import { SectionIndicatorTracker } from "./SectionIndicatorTracker";
 import { SectionIndicatorUI } from "./SectionIndicatorUI";
 import { sections } from "../consts";
 import { useIsMobile } from "../hooks/useIsMobile";
+
+// Lazy load heavy Three.js components for better initial bundle size
+const LandingScene = lazy(() => import("./Landing.scene"));
+const R3FPowerManager = lazy(() => import("./R3FPowerManager"));
 
 const Landing: React.FC = () => {
   const [isContentRevealed, setIsContentRevealed] = useState(false);

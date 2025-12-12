@@ -6,8 +6,15 @@ import {
 } from "@react-three/drei";
 import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import React, { useMemo, useRef } from "react";
-import * as THREE from "three";
-import type { Mesh } from "three";
+import {
+  MathUtils,
+  Vector2,
+  DoubleSide,
+  AdditiveBlending,
+  type Mesh,
+  type Group,
+  type ShaderMaterial,
+} from "three";
 import { containAspectSize } from "./FloatingImage.utils";
 
 export const AspectPresets = {
@@ -155,16 +162,16 @@ const FloatingImage = React.forwardRef<Mesh, FloatingImageProps>(
     } = glassConfig;
 
     // Ref for the group that wraps everything
-    const groupRef = useRef<THREE.Group>(null!);
+    const groupRef = useRef<Group>(null!);
 
     // Ref for the tilt group (inside Float) to access rotation
-    const tiltRef = useRef<THREE.Group>(null!);
+    const tiltRef = useRef<Group>(null!);
 
     // Ref for the shine mesh material to update uniforms
-    const shineMaterialRef = useRef<THREE.ShaderMaterial>(null!);
+    const shineMaterialRef = useRef<ShaderMaterial>(null!);
 
     // Ref for the liquid noise shader material
-    const liquidNoiseMaterialRef = useRef<THREE.ShaderMaterial>(null!);
+    const liquidNoiseMaterialRef = useRef<ShaderMaterial>(null!);
 
     // Store the current smoothed Y position
     const smoothedY = useRef(0);
@@ -246,7 +253,7 @@ const FloatingImage = React.forwardRef<Mesh, FloatingImageProps>(
 
       // Heavily smooth the velocity for butter-smooth motion (cached pow)
       const velocitySmoothFactor = cachedPowValues.velocitySmooth(delta);
-      smoothedVelocity.current = THREE.MathUtils.lerp(
+      smoothedVelocity.current = MathUtils.lerp(
         smoothedVelocity.current,
         rawVelocity,
         velocitySmoothFactor
@@ -261,7 +268,7 @@ const FloatingImage = React.forwardRef<Mesh, FloatingImageProps>(
 
       // Smooth lerp towards target position (cached pow)
       const positionSmoothFactor = cachedPowValues.positionSmooth(delta);
-      smoothedY.current = THREE.MathUtils.lerp(
+      smoothedY.current = MathUtils.lerp(
         smoothedY.current,
         targetY,
         positionSmoothFactor
@@ -329,12 +336,12 @@ const FloatingImage = React.forwardRef<Mesh, FloatingImageProps>(
 
       // Smooth lerp towards target rotation (cached pow)
       const tiltSmoothFactor = cachedPowValues.tiltSmooth(delta);
-      currentTiltRotation.current.x = THREE.MathUtils.lerp(
+      currentTiltRotation.current.x = MathUtils.lerp(
         currentTiltRotation.current.x,
         targetRotX,
         tiltSmoothFactor
       );
-      currentTiltRotation.current.y = THREE.MathUtils.lerp(
+      currentTiltRotation.current.y = MathUtils.lerp(
         currentTiltRotation.current.y,
         targetRotY,
         tiltSmoothFactor
@@ -383,8 +390,8 @@ const FloatingImage = React.forwardRef<Mesh, FloatingImageProps>(
       mousePos.current.y = (event.uv.y - 0.5) * 2;
 
       // Clamp to -1 to 1 range
-      mousePos.current.x = THREE.MathUtils.clamp(mousePos.current.x, -1, 1);
-      mousePos.current.y = THREE.MathUtils.clamp(mousePos.current.y, -1, 1);
+      mousePos.current.x = MathUtils.clamp(mousePos.current.x, -1, 1);
+      mousePos.current.y = MathUtils.clamp(mousePos.current.y, -1, 1);
     };
 
     // Handle pointer enter
@@ -476,7 +483,7 @@ const FloatingImage = React.forwardRef<Mesh, FloatingImageProps>(
     const shineShader = useMemo(
       () => ({
         uniforms: {
-          uRotation: { value: new THREE.Vector2(0, 0) },
+          uRotation: { value: new Vector2(0, 0) },
           uHovered: { value: 0.0 },
           uIntensity: { value: shineIntensity },
         },
@@ -611,7 +618,7 @@ const FloatingImage = React.forwardRef<Mesh, FloatingImageProps>(
                     clearcoat={glassClearcoat}
                     clearcoatRoughness={glassClearcoatRoughness}
                     transparent
-                    side={THREE.DoubleSide}
+                    side={DoubleSide}
                   />
                 </mesh>
 
@@ -628,7 +635,7 @@ const FloatingImage = React.forwardRef<Mesh, FloatingImageProps>(
                       uniforms={liquidNoiseShader.uniforms}
                       transparent
                       depthWrite={false}
-                      blending={THREE.AdditiveBlending}
+                      blending={AdditiveBlending}
                     />
                   </mesh>
                 )}
@@ -656,7 +663,7 @@ const FloatingImage = React.forwardRef<Mesh, FloatingImageProps>(
                   uniforms={shineShader.uniforms}
                   transparent
                   depthWrite={false}
-                  blending={THREE.AdditiveBlending}
+                  blending={AdditiveBlending}
                 />
               </mesh>
             )}
