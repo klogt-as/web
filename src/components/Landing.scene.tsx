@@ -178,6 +178,7 @@ const LandingScene: React.FC<LandingSceneProps> = ({ sections }) => {
             aspect="16:9"
             maxWidth={imageMaxWidth}
             maxHeight={pageHeight * 0.7}
+            maxDomHeight={600}
             position={[imageX, yPosition + yOffset, 2]}
             floatConfig={{
               speed: 1.5,

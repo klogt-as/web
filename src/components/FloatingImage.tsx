@@ -32,6 +32,7 @@ export type FloatingImageProps = DreiImageProps & {
   aspect: AspectKey | number; // "16:9" | 16/9 | etc.
   maxWidth: number; // world units
   maxHeight: number; // world units
+  maxDomHeight?: number; // max height in DOM pixels (e.g., 600)
   thickness?: number; // Depth of the image plate (default: 0.15)
   floatConfig?: {
     speed?: number;
@@ -90,6 +91,7 @@ const FloatingImage = React.forwardRef<Mesh, FloatingImageProps>(
       aspect,
       maxWidth,
       maxHeight,
+      maxDomHeight,
       thickness = 0.15,
       floatConfig = {},
       smoothScrollConfig = {},
@@ -416,10 +418,25 @@ const FloatingImage = React.forwardRef<Mesh, FloatingImageProps>(
         : aspect;
     }, [aspect]);
 
+    // Compute effective maxHeight based on maxDomHeight constraint
+    const effectiveMaxHeight = useMemo(() => {
+      if (!maxDomHeight) return maxHeight;
+
+      // Convert DOM pixels to world units
+      // viewport.height (world units) = window.innerHeight (DOM pixels)
+      // Therefore: 1 world unit = window.innerHeight / viewport.height pixels
+      // So: maxDomHeight pixels = (maxDomHeight / window.innerHeight) * viewport.height world units
+      const maxHeightInWorldUnits =
+        (maxDomHeight / window.innerHeight) * viewport.height;
+
+      // Return the minimum of the two constraints
+      return Math.min(maxHeight, maxHeightInWorldUnits);
+    }, [maxDomHeight, maxHeight, viewport.height]);
+
     // Compute contained image size
     const { width, height } = useMemo(() => {
-      return containAspectSize(aspectRatio, maxWidth, maxHeight);
-    }, [aspectRatio, maxWidth, maxHeight]);
+      return containAspectSize(aspectRatio, maxWidth, effectiveMaxHeight);
+    }, [aspectRatio, maxWidth, effectiveMaxHeight]);
 
     // Liquid noise shader - animated glassmorphism effect
     const liquidNoiseShader = useMemo(
