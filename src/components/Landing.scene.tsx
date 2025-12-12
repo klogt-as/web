@@ -1,10 +1,9 @@
 import { useFBO, useScroll } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
-import React, { useRef, useState } from "react";
+import React, { useRef } from "react";
 import * as THREE from "three";
+import { isMobile } from "../utils";
 import FloatingImage from "./FloatingImage";
-import LiquidGlassPanel from "./LiquidGlassPanel";
-import { isMobile } from "./LiquidGlassShader";
 
 interface SectionData {
   id: string;
@@ -306,6 +305,16 @@ const LandingScene: React.FC<LandingSceneProps> = ({ sections }) => {
   // Høyden til én "side" i ScrollControls == 100vh i world units
   const pageHeight = viewport.height;
 
+  /**
+   * IMPORTANT PERF NOTE
+   * Never call React setState inside useFrame.
+   * It triggers a React re-render every frame and will eventually kill performance.
+   *
+   * The glass/FBO path is currently disabled in JSX below; keep this OFF unless needed.
+   * If/when you enable LiquidGlassPanel, set this to true.
+   */
+  const ENABLE_GLASS_FBO = false;
+
   // FBO resolution - lower on mobile for better performance
   const fboSize = isMobile ? 512 : 1024;
 
@@ -317,15 +326,17 @@ const LandingScene: React.FC<LandingSceneProps> = ({ sections }) => {
     stencilBuffer: false,
   });
 
-  const [sceneTexture, setSceneTexture] = useState<THREE.Texture | null>(null);
+  const sceneTexture: THREE.Texture | null = ENABLE_GLASS_FBO
+    ? renderTarget.texture
+    : null;
 
-  // Render scene to FBO for glass effect
+  // Render scene to FBO for glass effect (only if enabled)
   useFrame((state) => {
+    if (!ENABLE_GLASS_FBO) return;
     state.gl.setRenderTarget(renderTarget);
     state.gl.clear();
     state.gl.render(state.scene, state.camera);
     state.gl.setRenderTarget(null);
-    setSceneTexture(renderTarget.texture);
   }, -1); // Run before main render
 
   // --- Match CSS-layouten horisontalt ---
@@ -395,28 +406,8 @@ const LandingScene: React.FC<LandingSceneProps> = ({ sections }) => {
         ));
       })}
 
-      {/* Liquid Glass Panels for each section - stacked ice blocks */}
-      {/* {sections.map((section, index) => {
-                const yPosition = -index * pageHeight;
-
-                return (
-                    <LiquidGlassPanel
-                        key={`glass-${section.id}`}
-                        position={[glassX, yPosition, 0.5]} // z=0.5 - behind images (z=2) but in front of blobs
-                        width={glassWidth}
-                        height={glassHeight}
-                        tint={section.accent}
-                        sceneTexture={sceneTexture}
-                        sectionIndex={index}
-                        totalSections={sections.length}
-                        parallaxStrength={0.1} // Reduced parallax for full-screen panels
-                        borderRadius={0.2} // Smaller radius for ice block aesthetic
-                    />
-                );
-            })} */}
-
-      {/* Floating images, én per seksjon */}
-      {/* {sections.map((section, index) => {
+      {/* Floating images for each section */}
+      {sections.map((section, index) => {
         const yPosition = -index * pageHeight;
 
         return (
@@ -434,7 +425,7 @@ const LandingScene: React.FC<LandingSceneProps> = ({ sections }) => {
             }}
           />
         );
-      })} */}
+      })}
     </>
   );
 };

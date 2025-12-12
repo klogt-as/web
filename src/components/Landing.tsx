@@ -1,10 +1,9 @@
 import { Scroll, ScrollControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { Suspense, useState } from "react";
-// Assuming image imports work in your environment (e.g., Vite/Webpack/Next.js)
-
 import LandingScene from "./Landing.scene";
 import LoadingOverlay from "./LoadingOverlay";
+import R3FPowerManager from "./R3FPowerManager";
 import { ScrollSnapHandler } from "./ScrollSnapHandler";
 import { ScrollProvider } from "./ScrollContext";
 import { SectionIndicatorTracker } from "./SectionIndicatorTracker";
@@ -44,6 +43,11 @@ const Landing: React.FC = () => {
               "transform 800ms cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 800ms ease-out",
           } as React.CSSProperties
         }
+        // Power-saving: render only when we explicitly invalidate (see R3FPowerManager)
+        frameloop="demand"
+        // Keep DPR capped so the GPU doesn't burn at native high-dpi all the time
+        dpr={[1, 1.5]}
+        gl={{ powerPreference: "low-power" }}
         orthographic // Use orthographic camera for a 2D-like scroll effect
         camera={{ zoom: 80, position: [0, 0, 10] }}
       >
@@ -61,6 +65,8 @@ const Landing: React.FC = () => {
               {/* 3D background components */}
               <Scroll>
                 <color attach="background" args={["#050608"]} />
+                {/* Power-saving + WebGL context-lost handling */}
+                <R3FPowerManager activeMs={2200} />
                 {/* Pass sections to the 3D scene to render the FloatingImages */}
                 <LandingScene sections={sections} />
               </Scroll>
