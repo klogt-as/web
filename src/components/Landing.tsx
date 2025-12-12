@@ -295,7 +295,7 @@ const styles: Record<string, React.CSSProperties | any> = {
     backdropFilter: "blur(20px) saturate(180%)",
     WebkitBackdropFilter: "blur(20px) saturate(180%)",
     color: "#050608",
-    fontWeight: 600,
+    fontWeight: 400,
     cursor: "pointer",
     display: "inline-flex",
     alignItems: "center",
@@ -303,6 +303,7 @@ const styles: Record<string, React.CSSProperties | any> = {
       "0 8px 32px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.3)",
     transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
     position: "relative" as const,
+    textTransform: "uppercase",
   },
   // Keep imageWrapper for layout, even if the img tag is removed
   imageWrapper: {
