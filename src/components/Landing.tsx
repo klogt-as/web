@@ -9,6 +9,7 @@ import { ScrollProvider } from "./ScrollContext";
 import { SectionIndicatorTracker } from "./SectionIndicatorTracker";
 import { SectionIndicatorUI } from "./SectionIndicatorUI";
 import { sections } from "../consts";
+import { useIsMobile } from "../hooks/useIsMobile";
 
 const Landing: React.FC = () => {
   const [isContentRevealed, setIsContentRevealed] = useState(false);
@@ -17,6 +18,7 @@ const Landing: React.FC = () => {
     isNearSnap: true,
     isSnapping: false,
   });
+  const isMobile = useIsMobile();
 
   return (
     <div style={styles.root}>
@@ -66,7 +68,7 @@ const Landing: React.FC = () => {
               <Scroll>
                 <color attach="background" args={["#050608"]} />
                 {/* Power-saving + WebGL context-lost handling */}
-                <R3FPowerManager activeMs={2200} />
+                <R3FPowerManager idleMs={10000} />
                 {/* Pass sections to the 3D scene to render the FloatingImages */}
                 <LandingScene sections={sections} />
               </Scroll>
@@ -84,7 +86,7 @@ const Landing: React.FC = () => {
                     <section
                       key={section.id}
                       style={{
-                        ...styles.section,
+                        ...styles.section(isMobile),
                         ...styles.sectionGradient(section.accent),
                       }}
                     >
@@ -189,16 +191,16 @@ const styles: Record<string, React.CSSProperties | any> = {
   scrollWrapper: {
     width: "100vw",
   },
-  section: {
+  section: (isMobile: boolean) => ({
     minHeight: "100vh",
     display: "grid",
-    gridTemplateColumns: "minmax(0, 1.2fr) minmax(0, 1fr)",
-    padding: "0 8vw",
+    gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.2fr) minmax(0, 1fr)",
+    padding: isMobile ? "0 5vw" : "0 8vw",
     alignItems: "center",
-    gap: "4rem",
+    gap: isMobile ? "2rem" : "4rem",
     zIndex: 10, // Ensure HTML is above 3D elements
     position: "relative",
-  },
+  }),
   sectionGradient: (accent: string) => ({
     background:
       "radial-gradient(circle at 0% 0%, rgba(255,255,255,0.02), transparent 55%), " +

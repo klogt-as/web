@@ -1,5 +1,5 @@
 import { useProgress } from "@react-three/drei";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 
 // Easing function for smooth progress animation
 const easeOutCubic = (t: number): number => {
@@ -47,6 +47,27 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
   const startTimeRef = useRef(Date.now());
   const animationFrameRef = useRef<number>(0);
 
+  // Track if we've ever seen assets being loaded (to prevent finishing purely on time)
+  const hasSeenAssetsRef = useRef(false);
+  if (total > 0 || active) {
+    hasSeenAssetsRef.current = true;
+  }
+
+  const isAssetTracked = hasSeenAssetsRef.current;
+
+  // Dev mode debug logging
+  const DEBUG =
+    typeof import.meta !== "undefined" && (import.meta as any).env?.DEV;
+
+  // Determine if we can actually finish loading
+  const canFinish = useMemo(() => {
+    // If we never tracked assets, allow finishing by time only (UX fallback)
+    if (!isAssetTracked) return true;
+
+    // If we did track assets, only finish when Drei reports done
+    return !active && assetProgress >= 100;
+  }, [active, assetProgress, isAssetTracked]);
+
   // Calculate the target progress based on asset loading and minimum time
   const getTargetProgress = useCallback(() => {
     const elapsed = Date.now() - startTimeRef.current;
@@ -54,19 +75,20 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
     // Time-based progress (smooth animation over minDisplayTime)
     const timeProgress = Math.min(100, (elapsed / minDisplayTime) * 100);
 
-    // If assets are being tracked, use real progress
-    // Otherwise, use time-based progress for smooth UX
-    const hasAssets = total > 0;
+    // If we have (or have had) assets being tracked, prevent reaching 100%
+    // until loading is actually done to avoid "100% then suddenly content appears"
+    if (isAssetTracked) {
+      const blended = Math.max(timeProgress * 0.3, assetProgress);
 
-    if (hasAssets) {
-      // Blend between time progress and asset progress
-      // Asset progress takes priority when assets are loading
-      return Math.min(100, Math.max(timeProgress * 0.3, assetProgress));
+      // Hold at 99% until assets are actually finished
+      if (!canFinish) return Math.min(99, blended);
+
+      return 100;
     }
 
     // No assets tracked - use time-based progress with easing
     return Math.min(100, easeOutCubic(elapsed / minDisplayTime) * 100);
-  }, [assetProgress, total, minDisplayTime]);
+  }, [assetProgress, minDisplayTime, isAssetTracked, canFinish]);
 
   // Animate the displayed progress smoothly
   useEffect(() => {
@@ -74,15 +96,23 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
       const target = getTargetProgress();
 
       setDisplayedProgress((prev) => {
+        // Ensure prev is valid (never negative)
+        const safePrev = Math.max(0, prev);
+
         // Smoothly approach target
-        const diff = target - prev;
+        const diff = target - safePrev;
         const step = Math.max(0.5, Math.abs(diff) * 0.1);
 
+        let next = safePrev;
         if (Math.abs(diff) < 0.5) {
-          return Math.round(target);
+          next = Math.round(target);
+        } else {
+          next = safePrev + (diff > 0 ? step : -step);
         }
 
-        return prev + (diff > 0 ? step : -step);
+        // CRITICAL: Keep progress monotonic - never go backwards!
+        // This prevents the 4% -> 1% jump when asset tracking switches on
+        return Math.max(safePrev, next);
       });
 
       animationFrameRef.current = requestAnimationFrame(animate);
@@ -99,6 +129,9 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
 
   // Handle completion when progress reaches 100%
   useEffect(() => {
+    // Only allow completion if loading is actually done
+    if (!canFinish) return;
+
     if (displayedProgress >= 100 && !isComplete) {
       const elapsed = Date.now() - startTimeRef.current;
       const remainingTime = Math.max(0, minDisplayTime - elapsed);
@@ -110,7 +143,7 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
 
       return () => clearTimeout(timer);
     }
-  }, [displayedProgress, isComplete, minDisplayTime]);
+  }, [displayedProgress, isComplete, minDisplayTime, canFinish]);
 
   // Handle the slide animation when loading is complete
   useEffect(() => {
@@ -132,12 +165,50 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
     }
   }, [isComplete, active, slideDelay, slideDuration, onSlideStart, onComplete]);
 
+  // Optional debug logs (dev only) - helps diagnose loading issues
+  useEffect(() => {
+    if (!DEBUG) return;
+
+    const rounded = Math.round(displayedProgress);
+
+    // Log every 5% increment, plus key milestones
+    if (
+      rounded % 5 === 0 ||
+      rounded === 1 ||
+      rounded === 99 ||
+      rounded === 100
+    ) {
+      // eslint-disable-next-line no-console
+      console.log(`[LoadingOverlay] ${rounded}%`, {
+        displayedProgress: displayedProgress.toFixed(1),
+        assetProgress: assetProgress.toFixed(1),
+        active,
+        total,
+        isAssetTracked,
+        canFinish,
+        isComplete,
+        isSliding,
+      });
+    }
+  }, [
+    DEBUG,
+    displayedProgress,
+    assetProgress,
+    active,
+    total,
+    isAssetTracked,
+    canFinish,
+    isComplete,
+    isSliding,
+  ]);
+
   // Don't render if not visible
   if (!isVisible) {
     return null;
   }
 
   const roundedProgress = Math.round(displayedProgress);
+  const displayText = `${roundedProgress}`;
 
   return (
     <div
@@ -149,7 +220,9 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
           : "none",
       }}
     >
-      <div style={styles.percentageText}>{roundedProgress}%</div>
+      <div key={roundedProgress} style={styles.percentageText} translate="no">
+        {displayText}
+      </div>
     </div>
   );
 };
@@ -171,6 +244,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 700,
     letterSpacing: "-0.02em",
     userSelect: "none",
+    whiteSpace: "nowrap",
   },
 };
 

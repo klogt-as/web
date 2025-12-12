@@ -13,10 +13,10 @@ import { useEffect, useRef, useState } from "react";
  */
 export type R3FPowerManagerProps = {
   /**
-   * How long (ms) we keep the render loop "active" after last interaction.
-   * During this window we invalidate every frame.
+   * How long (ms) before we reduce frame rate to save power.
+   * After this time, we render at half rate (30 FPS instead of 60 FPS).
    */
-  activeMs?: number;
+  idleMs?: number;
   /**
    * If true, also treat pointer movement as activity. This can be noisy on some devices.
    */
@@ -24,7 +24,7 @@ export type R3FPowerManagerProps = {
 };
 
 export default function R3FPowerManager({
-  activeMs = 2000,
+  idleMs = 10000,
   trackPointerMove = false,
 }: R3FPowerManagerProps) {
   const { gl, invalidate } = useThree();
@@ -120,13 +120,26 @@ export default function R3FPowerManager({
   }, [gl, invalidate]);
 
   // Render loop control for frameloop="demand":
-  // If within active window and visible + context ok => invalidate each frame.
+  // Always render when visible, but reduce frame rate when idle for power saving.
+  const frameCountRef = useRef(0);
+
   useFrame(() => {
     if (document.hidden) return;
     if (isWebglContextLost) return;
 
+    frameCountRef.current++;
+
     const elapsedSinceActivity = Date.now() - lastActivityAt.current;
-    if (elapsedSinceActivity <= activeMs) {
+    const isIdle = elapsedSinceActivity > idleMs;
+
+    if (isIdle) {
+      // Idle mode: Render every other frame (30 FPS) to save power
+      // This keeps animations smooth while reducing GPU load
+      if (frameCountRef.current % 2 === 0) {
+        invalidate();
+      }
+    } else {
+      // Active mode: Render every frame (60 FPS) for smooth animations
       invalidate();
     }
   });

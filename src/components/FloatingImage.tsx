@@ -45,6 +45,13 @@ export type FloatingImageProps = DreiImageProps & {
     shineEnabled?: boolean; // Enable shine/reflection effect (default: true)
     shineIntensity?: number; // Shine opacity (default: 0.4)
   };
+  frameConfig?: {
+    enabled?: boolean; // Enable 3D frame (default: true)
+    color?: string; // Frame color (default: "#2a2a2a")
+    padding?: number; // Frame padding in world units (default: 0.08)
+    roughness?: number; // Material roughness (default: 0.7)
+    metalness?: number; // Material metalness (default: 0.0)
+  };
 };
 
 const FloatingImage = React.forwardRef<Mesh, FloatingImageProps>(
@@ -57,6 +64,7 @@ const FloatingImage = React.forwardRef<Mesh, FloatingImageProps>(
       floatConfig = {},
       smoothScrollConfig = {},
       tiltConfig = {},
+      frameConfig = {},
       position,
       ...imageProps
     },
@@ -83,6 +91,14 @@ const FloatingImage = React.forwardRef<Mesh, FloatingImageProps>(
       shineEnabled = true,
       shineIntensity = 0.4,
     } = tiltConfig;
+
+    const {
+      enabled: frameEnabled = true,
+      color: frameColor = "#2a2a2a",
+      padding: framePadding = 0.08,
+      roughness: frameRoughness = 0.7,
+      metalness: frameMetalness = 0.0,
+    } = frameConfig;
 
     // Ref for the group that wraps everything
     const groupRef = useRef<THREE.Group>(null!);
@@ -348,11 +364,23 @@ const FloatingImage = React.forwardRef<Mesh, FloatingImageProps>(
 
           {/* Tilt group - separate from Float's animation */}
           <group ref={tiltRef}>
-            {/* Simple backing plate using plane geometry */}
-            <mesh position={[0, 0, -thickness]}>
-              <planeGeometry args={[width, height]} />
-              <meshBasicMaterial color="#ffffff" />
-            </mesh>
+            {/* Museum-style 3D frame with real depth */}
+            {frameEnabled && (
+              <mesh position={[0, 0, -thickness / 2]} castShadow receiveShadow>
+                <boxGeometry
+                  args={[
+                    width + framePadding,
+                    height + framePadding,
+                    thickness,
+                  ]}
+                />
+                <meshStandardMaterial
+                  color={frameColor}
+                  roughness={frameRoughness}
+                  metalness={frameMetalness}
+                />
+              </mesh>
+            )}
 
             {/* The actual image on the front */}
             <DreiImage
@@ -360,6 +388,7 @@ const FloatingImage = React.forwardRef<Mesh, FloatingImageProps>(
               transparent
               scale={[width, height]}
               position={[0, 0, 0.001]}
+              receiveShadow
               {...imageProps}
             />
 
