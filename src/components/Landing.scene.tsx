@@ -97,19 +97,19 @@ const LandingScene: React.FC<LandingSceneProps> = ({ sections }) => {
       <color attach="background" args={["#050608"]} />
 
       {/* OPTIMIZED LIGHTING: Reduced from 5 to 3 lights for better performance */}
-      <ambientLight intensity={1.0} color="#ffffff" />
+      <ambientLight intensity={0.8} color="#ffffff" />
 
-      {/* Main key light - bright white from top-right */}
+      {/* Main key light - reduced intensity to prevent washed-out images */}
       <directionalLight
         position={[10, 10, 5]}
-        intensity={2.8}
+        intensity={1.5}
         color="#ffffff"
       />
 
       {/* Single multi-color accent point light for color pop */}
       <pointLight
         position={[0, 0, 10]}
-        intensity={3.0}
+        intensity={2.0}
         color="#a070ff"
         distance={30}
         decay={2}
@@ -184,6 +184,10 @@ const LandingScene: React.FC<LandingSceneProps> = ({ sections }) => {
               speed: 1.5,
               rotationIntensity: 0.2,
               floatIntensity: 0.05,
+            }}
+            tiltConfig={{
+              shineEnabled: false, // Disable intense shine effect
+              intensity: 0.3, // Reduce tilt intensity for more subtle effect
             }}
           />
         );
