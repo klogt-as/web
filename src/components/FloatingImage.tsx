@@ -45,12 +45,35 @@ export type FloatingImageProps = DreiImageProps & {
     shineEnabled?: boolean; // Enable shine/reflection effect (default: true)
     shineIntensity?: number; // Shine opacity (default: 0.4)
   };
+  springConfig?: {
+    enabled?: boolean; // Enable spring pull effect (default: true)
+    pullStrength?: number; // How much the image pulls toward mouse (default: 0.3)
+    springStiffness?: number; // Spring stiffness (default: 150)
+    springDamping?: number; // Spring damping/friction (default: 20)
+  };
   frameConfig?: {
     enabled?: boolean; // Enable 3D frame (default: true)
-    color?: string; // Frame color (default: "#2a2a2a")
-    padding?: number; // Frame padding in world units (default: 0.08)
-    roughness?: number; // Material roughness (default: 0.7)
-    metalness?: number; // Material metalness (default: 0.0)
+    style?: "solid" | "liquidGlass"; // Frame style (default: "solid")
+    solidConfig?: {
+      color?: string; // Frame color (default: "#2a2a2a")
+      padding?: number; // Frame padding in world units (default: 0.08)
+      roughness?: number; // Material roughness (default: 0.7)
+      metalness?: number; // Material metalness (default: 0.0)
+    };
+    glassConfig?: {
+      padding?: number; // Frame padding in world units (default: 0.12)
+      transmission?: number; // Glass transparency (default: 0.85)
+      roughness?: number; // Frosted blur (default: 0.35)
+      thickness?: number; // Glass depth (default: 0.5)
+      opacity?: number; // Overall opacity (default: 0.55)
+      ior?: number; // Refraction index (default: 1.5)
+      clearcoat?: number; // Surface shine (default: 1.0)
+      clearcoatRoughness?: number; // Clearcoat roughness (default: 0.15)
+      color?: string; // Tint color (default: "#f0f8ff")
+      animatedNoise?: boolean; // Liquid distortion (default: true)
+      noiseIntensity?: number; // Distortion intensity (default: 0.02)
+      noiseSpeed?: number; // Animation speed (default: 0.3)
+    };
   };
 };
 
@@ -64,6 +87,7 @@ const FloatingImage = React.forwardRef<Mesh, FloatingImageProps>(
       floatConfig = {},
       smoothScrollConfig = {},
       tiltConfig = {},
+      springConfig = {},
       frameConfig = {},
       position,
       ...imageProps
@@ -93,12 +117,42 @@ const FloatingImage = React.forwardRef<Mesh, FloatingImageProps>(
     } = tiltConfig;
 
     const {
+      enabled: springEnabled = true,
+      pullStrength = 0.3,
+      springStiffness = 150,
+      springDamping = 20,
+    } = springConfig;
+
+    const {
       enabled: frameEnabled = true,
-      color: frameColor = "#2a2a2a",
-      padding: framePadding = 0.08,
-      roughness: frameRoughness = 0.7,
-      metalness: frameMetalness = 0.0,
+      style: frameStyle = "solid",
+      solidConfig = {},
+      glassConfig = {},
     } = frameConfig;
+
+    // Solid frame config
+    const {
+      color: solidColor = "#2a2a2a",
+      padding: solidPadding = 0.08,
+      roughness: solidRoughness = 0.7,
+      metalness: solidMetalness = 0.0,
+    } = solidConfig;
+
+    // Liquid glass config
+    const {
+      padding: glassPadding = 0.12,
+      transmission: glassTransmission = 0.85,
+      roughness: glassRoughness = 0.35,
+      thickness: glassThickness = 0.5,
+      opacity: glassOpacity = 0.55,
+      ior: glassIor = 1.5,
+      clearcoat: glassClearcoat = 1.0,
+      clearcoatRoughness: glassClearcoatRoughness = 0.15,
+      color: glassColor = "#f0f8ff",
+      animatedNoise: glassAnimatedNoise = true,
+      noiseIntensity: glassNoiseIntensity = 0.02,
+      noiseSpeed: glassNoiseSpeed = 0.3,
+    } = glassConfig;
 
     // Ref for the group that wraps everything
     const groupRef = useRef<THREE.Group>(null!);
@@ -108,6 +162,9 @@ const FloatingImage = React.forwardRef<Mesh, FloatingImageProps>(
 
     // Ref for the shine mesh material to update uniforms
     const shineMaterialRef = useRef<THREE.ShaderMaterial>(null!);
+
+    // Ref for the liquid noise shader material
+    const liquidNoiseMaterialRef = useRef<THREE.ShaderMaterial>(null!);
 
     // Store the current smoothed Y position
     const smoothedY = useRef(0);
@@ -120,6 +177,10 @@ const FloatingImage = React.forwardRef<Mesh, FloatingImageProps>(
     const mousePos = useRef({ x: 0, y: 0 });
     const isHovered = useRef(false);
     const currentTiltRotation = useRef({ x: 0, y: 0 });
+
+    // Spring state: position, velocity for spring physics
+    const springPosition = useRef({ x: 0, y: 0 });
+    const springVelocity = useRef({ x: 0, y: 0 });
 
     // Get scroll data from ScrollControls
     const scroll = useScroll();
@@ -180,9 +241,45 @@ const FloatingImage = React.forwardRef<Mesh, FloatingImageProps>(
       groupRef.current.position.y = smoothedY.current;
     });
 
-    // Animate 3D tilt based on mouse position
+    // Animate spring pull + 3D tilt (combined for performance)
     useFrame((_, delta) => {
-      if (!tiltRef.current || !tiltEnabled) return;
+      if (!tiltRef.current) return;
+
+      // === SPRING PULL EFFECT ===
+      if (springEnabled) {
+        // Calculate target position based on mouse position and hover state
+        const targetX = isHovered.current
+          ? mousePos.current.x * pullStrength
+          : 0;
+        const targetY = isHovered.current
+          ? mousePos.current.y * pullStrength
+          : 0;
+
+        // Spring physics - smooth elastic motion
+        // acceleration = -stiffness * (currentPos - targetPos) - damping * velocity
+        const deltaTime = Math.min(delta, 0.1); // Clamp delta to avoid huge jumps
+
+        // X axis spring
+        const accelX =
+          -springStiffness * (springPosition.current.x - targetX) -
+          springDamping * springVelocity.current.x;
+        springVelocity.current.x += accelX * deltaTime;
+        springPosition.current.x += springVelocity.current.x * deltaTime;
+
+        // Y axis spring
+        const accelY =
+          -springStiffness * (springPosition.current.y - targetY) -
+          springDamping * springVelocity.current.y;
+        springVelocity.current.y += accelY * deltaTime;
+        springPosition.current.y += springVelocity.current.y * deltaTime;
+
+        // Apply spring translation
+        tiltRef.current.position.x = springPosition.current.x;
+        tiltRef.current.position.y = springPosition.current.y;
+      }
+
+      // === 3D TILT ROTATION ===
+      if (!tiltEnabled) return;
 
       // Calculate target rotation based on mouse position and hover state
       // PHYSICS: Image tilts as if mouse is a heavy ball pressing down at that position
@@ -222,6 +319,20 @@ const FloatingImage = React.forwardRef<Mesh, FloatingImageProps>(
           ? 1.0
           : 0.0;
       }
+    });
+
+    // Animate liquid noise shader for glassmorphism effect
+    useFrame((state) => {
+      if (
+        !liquidNoiseMaterialRef.current ||
+        frameStyle !== "liquidGlass" ||
+        !glassAnimatedNoise
+      )
+        return;
+
+      // Update time uniform for animation
+      liquidNoiseMaterialRef.current.uniforms.uTime.value =
+        state.clock.elapsedTime;
     });
 
     // Handle mouse move to calculate normalized position
@@ -267,6 +378,64 @@ const FloatingImage = React.forwardRef<Mesh, FloatingImageProps>(
     const { width, height } = useMemo(() => {
       return containAspectSize(aspectRatio, maxWidth, maxHeight);
     }, [aspectRatio, maxWidth, maxHeight]);
+
+    // Liquid noise shader - animated glassmorphism effect
+    const liquidNoiseShader = useMemo(
+      () => ({
+        uniforms: {
+          uTime: { value: 0.0 },
+          uIntensity: { value: glassNoiseIntensity },
+          uSpeed: { value: glassNoiseSpeed },
+        },
+        vertexShader: `
+          varying vec2 vUv;
+          void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          uniform float uTime;
+          uniform float uIntensity;
+          uniform float uSpeed;
+          varying vec2 vUv;
+          
+          // Simple noise function
+          float noise(vec2 uv) {
+            return fract(sin(dot(uv, vec2(12.9898, 78.233))) * 43758.5453);
+          }
+          
+          void main() {
+            vec2 uv = vUv;
+            
+            // Animated liquid distortion - very subtle wave motion
+            float t = uTime * uSpeed;
+            float n1 = sin(uv.x * 15.0 + t) * cos(uv.y * 15.0 + t * 0.7);
+            float n2 = sin(uv.x * 8.0 - t * 0.5) * cos(uv.y * 12.0 + t);
+            float distortion = (n1 + n2) * 0.5 * uIntensity;
+            
+            // Edge gradient - glass is more visible/frosted at edges
+            vec2 center = vUv - 0.5;
+            float dist = length(center);
+            float edgeFade = smoothstep(0.5, 0.25, dist);
+            
+            // Subtle iridescent color shift based on position and time
+            float hueShift = sin(uv.x * 3.0 + t * 0.5) * cos(uv.y * 3.0 + t * 0.3) * 0.1;
+            vec3 glassColor = vec3(
+              0.9 + hueShift + distortion * 0.5,
+              0.95 + hueShift * 0.7,
+              1.0
+            );
+            
+            // Final opacity - mix of edge gradient and distortion
+            float alpha = edgeFade * 0.1 + abs(distortion) * 0.08;
+            
+            gl_FragColor = vec4(glassColor, alpha);
+          }
+        `,
+      }),
+      [glassNoiseIntensity, glassNoiseSpeed]
+    );
 
     // Shine shader - creates a realistic reflection based on surface rotation
     const shineShader = useMemo(
@@ -364,22 +533,71 @@ const FloatingImage = React.forwardRef<Mesh, FloatingImageProps>(
 
           {/* Tilt group - separate from Float's animation */}
           <group ref={tiltRef}>
-            {/* Museum-style 3D frame with real depth */}
-            {frameEnabled && (
+            {/* Solid frame - museum style */}
+            {frameEnabled && frameStyle === "solid" && (
               <mesh position={[0, 0, -thickness / 2]} castShadow receiveShadow>
                 <boxGeometry
                   args={[
-                    width + framePadding,
-                    height + framePadding,
+                    width + solidPadding,
+                    height + solidPadding,
                     thickness,
                   ]}
                 />
                 <meshStandardMaterial
-                  color={frameColor}
-                  roughness={frameRoughness}
-                  metalness={frameMetalness}
+                  color={solidColor}
+                  roughness={solidRoughness}
+                  metalness={solidMetalness}
                 />
               </mesh>
+            )}
+
+            {/* Liquid glass frame - iOS style */}
+            {frameEnabled && frameStyle === "liquidGlass" && (
+              <>
+                <mesh
+                  position={[0, 0, -thickness / 2]}
+                  castShadow
+                  receiveShadow
+                >
+                  <boxGeometry
+                    args={[
+                      width + glassPadding,
+                      height + glassPadding,
+                      thickness,
+                    ]}
+                  />
+                  <meshPhysicalMaterial
+                    color={glassColor}
+                    transmission={glassTransmission}
+                    opacity={glassOpacity}
+                    roughness={glassRoughness}
+                    thickness={glassThickness}
+                    ior={glassIor}
+                    clearcoat={glassClearcoat}
+                    clearcoatRoughness={glassClearcoatRoughness}
+                    transparent
+                    side={THREE.DoubleSide}
+                  />
+                </mesh>
+
+                {/* Animated liquid noise overlay */}
+                {glassAnimatedNoise && (
+                  <mesh position={[0, 0, 0.003]}>
+                    <planeGeometry
+                      args={[width + glassPadding, height + glassPadding]}
+                    />
+                    <shaderMaterial
+                      ref={liquidNoiseMaterialRef}
+                      vertexShader={liquidNoiseShader.vertexShader}
+                      fragmentShader={liquidNoiseShader.fragmentShader}
+                      uniforms={liquidNoiseShader.uniforms}
+                      transparent
+                      depthWrite={false}
+                      blending={THREE.AdditiveBlending}
+                    />
+                  </mesh>
+                )}
+              </>
             )}
 
             {/* The actual image on the front */}

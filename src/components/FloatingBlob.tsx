@@ -55,13 +55,17 @@ const FloatingBlob: React.FC<BlobProps> = ({
     // Velocity-based drag offset (like FloatingImage)
     const dragOffset = -smoothedVelocity.current * dragStrength;
 
-    // Very subtle floating animation (much smaller than before)
-    const floatY = Math.sin(time * 0.3 + position[0]) * 0.05;
-    const floatX = Math.cos(time * 0.2 + position[1]) * 0.03;
+    // Moderate floating animation with multiple frequencies for organic movement
+    const floatY = Math.sin(time * 0.3 + position[0]) * 0.12;
+    const floatX = Math.cos(time * 0.2 + position[1]) * 0.08;
+
+    // Secondary movement with different frequency for more natural drift
+    const floatY2 = Math.sin(time * 0.5 + position[1]) * 0.06;
+    const floatX2 = Math.cos(time * 0.4 + position[0]) * 0.05;
 
     // Target positions
-    const targetY = baseY + dragOffset + floatY;
-    const targetX = position[0] + floatX;
+    const targetY = baseY + dragOffset + floatY + floatY2;
+    const targetX = position[0] + floatX + floatX2;
 
     // Smooth lerp towards target (responsive but smooth)
     const positionSmoothFactor = 1 - Math.pow(1 - 0.08, delta * 60);
@@ -80,8 +84,9 @@ const FloatingBlob: React.FC<BlobProps> = ({
     meshRef.current.position.x = smoothedX.current;
     meshRef.current.position.y = smoothedY.current;
 
-    // Very subtle rotation
-    meshRef.current.rotation.z = Math.sin(time * 0.15) * 0.02;
+    // Moderate rotation for more dynamic movement
+    meshRef.current.rotation.z = Math.sin(time * 0.15) * 0.04;
+    meshRef.current.rotation.y = Math.cos(time * 0.12) * 0.03;
 
     // OPTIMIZED: Animate only transmission for liquid glass effect (reduced from 3 properties)
     if (meshRef.current.material instanceof THREE.MeshPhysicalMaterial) {
@@ -200,19 +205,19 @@ export const getBlobsForSection = (
         sectionIndex: 0,
         pageHeight,
       },
-      {
-        position: [6, 4, -7],
-        radius: 2.5,
-        color: "#ff4d62",
-        dragStrength: 0.3,
-        sectionIndex: 0,
-        pageHeight,
-      },
+      // {
+      //   position: [6, 4, -7],
+      //   radius: 2.5,
+      //   color: "#ff4d62",
+      //   dragStrength: 0.3,
+      //   sectionIndex: 0,
+      //   pageHeight,
+      // },
     ],
     // Section 1 (Street) - #4d9bff
     [
       {
-        position: [5, 2, -5],
+        position: [5, -2, -5],
         radius: 2.2,
         color: "#4d9bff",
         dragStrength: 0.5,
@@ -228,9 +233,9 @@ export const getBlobsForSection = (
         pageHeight,
       },
       {
-        position: [-1, 5, -4],
+        position: [3, 4, -5],
         radius: 2.8,
-        color: "#4d7bff",
+        color: "#4dc3ff",
         dragStrength: 0.35,
         sectionIndex: 1,
         pageHeight,
@@ -247,9 +252,9 @@ export const getBlobsForSection = (
     // Section 2 (Studio) - #9b5bff
     [
       {
-        position: [-3, 4, -5],
+        position: [3, 5, -4],
         radius: 2.0,
-        color: "#9b5bff",
+        color: "#7b5bff",
         dragStrength: 0.45,
         sectionIndex: 2,
         pageHeight,
@@ -263,15 +268,7 @@ export const getBlobsForSection = (
         pageHeight,
       },
       {
-        position: [-5, -1, -4],
-        radius: 1.5,
-        color: "#7b5bff",
-        dragStrength: 0.6,
-        sectionIndex: 2,
-        pageHeight,
-      },
-      {
-        position: [3, 5, -4],
+        position: [-4, -3, -4],
         radius: 2.5,
         color: "#9b5bff",
         dragStrength: 0.25,
