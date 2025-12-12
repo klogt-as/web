@@ -143,7 +143,7 @@ const LandingScene: React.FC<LandingSceneProps> = ({ sections }) => {
       })}
 
       {/* Floating images for each section */}
-      {sections.map((section, index) => {
+      {/* {sections.map((section, index) => {
         const yPosition = -index * pageHeight;
         const alignment = section.verticalAlign || "center";
 
@@ -203,7 +203,7 @@ const LandingScene: React.FC<LandingSceneProps> = ({ sections }) => {
             }}
           />
         );
-      })}
+      })} */}
     </>
   );
 };

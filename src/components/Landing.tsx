@@ -28,12 +28,12 @@ const Landing: React.FC = () => {
       <LoadingOverlay onSlideStart={() => setIsContentRevealed(true)} />
 
       {/* Section indicator UI - fixed overlay outside Canvas */}
-      <SectionIndicatorUI
+      {/* <SectionIndicatorUI
         totalSections={sections.length}
         blobPosition={indicatorState.blobPosition}
         isNearSnap={indicatorState.isNearSnap}
         isSnapping={indicatorState.isSnapping}
-      />
+      /> */}
 
       {/* Chiaroscuro vignette overlays - subtle fade to dark at top and bottom */}
       <div style={styles.topVignette} />
