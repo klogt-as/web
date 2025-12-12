@@ -59,7 +59,7 @@ const Landing: React.FC = () => {
           powerPreference: "low-power",
           outputColorSpace: "srgb",
           toneMapping: 1, // LinearToneMapping - subtle tone mapping that preserves whites better
-          toneMappingExposure: 1.2, // Slightly brighter to preserve bright colors
+          toneMappingExposure: 1.05, // Slightly brighter to preserve bright colors
         }}
         orthographic // Use orthographic camera for a 2D-like scroll effect
         camera={{ zoom: 80, position: [0, 0, 10] }}
