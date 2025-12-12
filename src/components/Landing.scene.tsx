@@ -4,8 +4,8 @@ import React from "react";
 import * as THREE from "three";
 import { isMobile } from "../utils";
 import { useIsMobile } from "../hooks/useIsMobile";
-import FloatingImage from "./FloatingImage";
 import FloatingBlob, { getBlobsForSection } from "./FloatingBlob";
+import { BlobMergeProvider, type BlobState } from "./BlobMergeContext";
 
 interface SectionData {
   id: string;
@@ -27,6 +27,20 @@ const LandingScene: React.FC<LandingSceneProps> = ({ sections }) => {
 
   // Høyden til én "side" i ScrollControls == 100vh i world units
   const pageHeight = viewport.height;
+
+  // Callback when all blobs in a section are merged
+  const handleSectionComplete = (
+    sectionIndex: number,
+    finalBlob: BlobState
+  ) => {
+    console.log(`🎉 Section ${sectionIndex} complete! All blobs merged.`, {
+      position: finalBlob.position,
+      radius: finalBlob.radius,
+      color: finalBlob.color,
+    });
+    // TODO: Transform blob to new object here
+    // This is where you can trigger the transformation animation
+  };
 
   /**
    * IMPORTANT PERF NOTE
@@ -127,20 +141,32 @@ const LandingScene: React.FC<LandingSceneProps> = ({ sections }) => {
         far={6}
       />
 
-      {/* Blobs for each section */}
-      {sections.map((section, sectionIndex) => {
-        const blobs = getBlobsForSection(
-          sectionIndex,
-          section.accent,
-          pageHeight
-        );
-        return blobs.map((blobProps, blobIndex) => (
-          <FloatingBlob
-            key={`blob-${section.id}-${blobIndex}`}
-            {...blobProps}
-          />
-        ));
-      })}
+      {/* DEBUG: Boundary visualization for each section */}
+      {/* {sections.map((section, sectionIndex) => (
+        <BoundaryDebug
+          key={`boundary-${section.id}`}
+          sectionIndex={sectionIndex}
+          pageHeight={pageHeight}
+          zPosition={-2}
+        />
+      ))} */}
+
+      {/* Blobs for each section - Wrapped with merge context */}
+      <BlobMergeProvider onSectionComplete={handleSectionComplete}>
+        {sections.map((section, sectionIndex) => {
+          const blobs = getBlobsForSection(
+            sectionIndex,
+            section.accent,
+            pageHeight
+          );
+          return blobs.map((blobProps, blobIndex) => (
+            <FloatingBlob
+              key={`blob-${section.id}-${blobIndex}`}
+              {...blobProps}
+            />
+          ));
+        })}
+      </BlobMergeProvider>
 
       {/* Floating images for each section */}
       {/* {sections.map((section, index) => {

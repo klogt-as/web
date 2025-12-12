@@ -337,7 +337,7 @@ const styles: Record<string, React.CSSProperties | any> = {
     top: 0,
     left: 0,
     width: "calc(100vw - 15px)",
-    height: "10px",
+    height: "25px",
     background:
       "linear-gradient(180deg, rgba(5, 6, 8, 0.25) 0%, rgba(5, 6, 8, 0.12) 35%, rgba(5, 6, 8, 0.05) 60%, transparent 100%)",
     backdropFilter: "blur(16px) saturate(180%)",
@@ -350,7 +350,7 @@ const styles: Record<string, React.CSSProperties | any> = {
     bottom: 0,
     left: 0,
     width: "calc(100vw - 15px)",
-    height: "10px",
+    height: "25px",
     background:
       "linear-gradient(0deg, rgba(5, 6, 8, 0.25) 0%, rgba(5, 6, 8, 0.12) 35%, rgba(5, 6, 8, 0.05) 60%, transparent 100%)",
     backdropFilter: "blur(16px) saturate(180%)",
