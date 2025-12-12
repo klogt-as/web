@@ -1,4 +1,4 @@
-import { useFBO } from "@react-three/drei";
+import { useFBO, Environment, ContactShadows } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import React from "react";
 import * as THREE from "three";
@@ -96,23 +96,35 @@ const LandingScene: React.FC<LandingSceneProps> = ({ sections }) => {
       {/* Background color */}
       <color attach="background" args={["#050608"]} />
 
-      {/* OPTIMIZED LIGHTING: Reduced from 5 to 3 lights for better performance */}
-      <ambientLight intensity={0.8} color="#ffffff" />
+      {/* IBL (Image-Based Lighting) */}
+      <Environment preset="studio" />
 
-      {/* Main key light - reduced intensity to prevent washed-out images */}
+      {/* Key light - hovedlyset fra skrått ovenfra, gir form og dybde */}
       <directionalLight
-        position={[10, 10, 5]}
-        intensity={1.5}
-        color="#ffffff"
+        position={[3, 5, 2]}
+        intensity={1.2}
+        castShadow
+        shadow-mapSize={[2048, 2048]}
+        shadow-camera-far={50}
+        shadow-camera-left={-20}
+        shadow-camera-right={20}
+        shadow-camera-top={20}
+        shadow-camera-bottom={-20}
       />
 
-      {/* Single multi-color accent point light for color pop */}
-      <pointLight
-        position={[0, 0, 10]}
-        intensity={2.0}
-        color="#a070ff"
-        distance={30}
-        decay={2}
+      {/* Fill light - myk fylling som reduserer harde skygger */}
+      <hemisphereLight intensity={0.35} groundColor="#050608" color="#ffffff" />
+
+      {/* Rim/back light - subtilt kantlys bakfra for separasjon */}
+      <directionalLight position={[-4, 2, -3]} intensity={0.35} />
+
+      {/* Contact shadows - myke skygger som "grunder" 3D-objekter i layouten */}
+      <ContactShadows
+        position={[0, -1, 0]}
+        opacity={0.35}
+        scale={12}
+        blur={2.5}
+        far={6}
       />
 
       {/* Blobs for each section */}

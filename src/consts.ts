@@ -7,6 +7,9 @@ import Image3 from "./assets/blog-placeholder-3.jpg";
 export const SITE_TITLE = "klogt";
 export const SITE_DESCRIPTION = "Welcome to my website!";
 
+// Scroll snapping configuration
+export const ENABLE_SCROLL_SNAP = true; // Set to false to disable scroll snapping
+
 export const sections = [
   {
     id: "hero",

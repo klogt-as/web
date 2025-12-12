@@ -6,7 +6,7 @@ import { ScrollSnapHandler } from "./ScrollSnapHandler";
 import { ScrollProvider } from "./ScrollContext";
 import { SectionIndicatorTracker } from "./SectionIndicatorTracker";
 import { SectionIndicatorUI } from "./SectionIndicatorUI";
-import { sections } from "../consts";
+import { sections, ENABLE_SCROLL_SNAP } from "../consts";
 import { useIsMobile } from "../hooks/useIsMobile";
 
 // Lazy load heavy Three.js components for better initial bundle size
@@ -54,6 +54,7 @@ const Landing: React.FC = () => {
         gl={{ powerPreference: "low-power" }}
         orthographic // Use orthographic camera for a 2D-like scroll effect
         camera={{ zoom: 80, position: [0, 0, 10] }}
+        shadows // Enable shadows for professional "web feel" lighting
       >
         {/* Suspense boundary enables useProgress to track asset loading */}
         <Suspense fallback={null}>
@@ -64,7 +65,9 @@ const Landing: React.FC = () => {
           >
             <ScrollProvider>
               {/* Enable scroll snapping between sections */}
-              <ScrollSnapHandler pages={sections.length} />
+              {ENABLE_SCROLL_SNAP && (
+                <ScrollSnapHandler pages={sections.length} />
+              )}
 
               {/* 3D background components */}
               <Scroll>
@@ -206,6 +209,9 @@ const styles: Record<string, React.CSSProperties | any> = {
     position: "relative",
     display: "flex",
     alignItems: "center",
+    outline: "2px solid rgba(253,250,236,0.45)",
+    outlineOffset: "0px",
+    outlineWidth: "2px",
   }),
   sectionGradient: (accent: string) => ({
     background:
