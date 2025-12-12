@@ -35,6 +35,10 @@ const Landing: React.FC = () => {
         isSnapping={indicatorState.isSnapping}
       />
 
+      {/* Chiaroscuro vignette overlays - subtle fade to dark at top and bottom */}
+      <div style={styles.topVignette} />
+      <div style={styles.bottomVignette} />
+
       <Canvas
         style={
           {
@@ -324,6 +328,34 @@ const styles: Record<string, React.CSSProperties | any> = {
     isolation: "isolate",
   },
   // The styles.image CSS is no longer used, as the styling is handled by R3F props (scale, rotation)
+
+  // Apple-style liquid glass vignette overlays - ultra subtle scroll fade
+  topVignette: {
+    position: "fixed" as const,
+    top: 0,
+    left: 0,
+    width: "calc(100vw - 15px)",
+    height: "10px",
+    background:
+      "linear-gradient(180deg, rgba(5, 6, 8, 0.25) 0%, rgba(5, 6, 8, 0.12) 35%, rgba(5, 6, 8, 0.05) 60%, transparent 100%)",
+    backdropFilter: "blur(16px) saturate(180%)",
+    WebkitBackdropFilter: "blur(16px) saturate(180%)",
+    pointerEvents: "none" as const,
+    zIndex: 100,
+  },
+  bottomVignette: {
+    position: "fixed" as const,
+    bottom: 0,
+    left: 0,
+    width: "calc(100vw - 15px)",
+    height: "10px",
+    background:
+      "linear-gradient(0deg, rgba(5, 6, 8, 0.25) 0%, rgba(5, 6, 8, 0.12) 35%, rgba(5, 6, 8, 0.05) 60%, transparent 100%)",
+    backdropFilter: "blur(16px) saturate(180%)",
+    WebkitBackdropFilter: "blur(16px) saturate(180%)",
+    pointerEvents: "none" as const,
+    zIndex: 100,
+  },
 };
 
 export default Landing;
