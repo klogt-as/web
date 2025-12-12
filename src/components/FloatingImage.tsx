@@ -4,7 +4,7 @@ import {
   Float,
   useScroll,
 } from "@react-three/drei";
-import { useFrame, type ThreeEvent } from "@react-three/fiber";
+import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import React, { useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { Mesh } from "three";
@@ -182,8 +182,23 @@ const FloatingImage = React.forwardRef<Mesh, FloatingImageProps>(
     const springPosition = useRef({ x: 0, y: 0 });
     const springVelocity = useRef({ x: 0, y: 0 });
 
+    // Performance: Cache Math.pow calculations (recalculated only when config changes)
+    const cachedPowValues = useMemo(() => {
+      return {
+        velocitySmooth: (delta: number) => 1 - Math.pow(0.05, delta),
+        positionSmooth: (delta: number) =>
+          1 - Math.pow(1 - smoothness, delta * 60),
+        tiltSmooth: (delta: number) =>
+          1 - Math.pow(1 - tiltSmoothness, delta * 60),
+      };
+    }, [smoothness, tiltSmoothness]);
+
+    // Performance: Track if image is in viewport for animation culling
+    const isInViewport = useRef(true);
+
     // Get scroll data from ScrollControls
     const scroll = useScroll();
+    const { viewport } = useThree();
 
     // Extract base position values
     const basePosition = useMemo(() => {
@@ -208,14 +223,29 @@ const FloatingImage = React.forwardRef<Mesh, FloatingImageProps>(
 
       const currentScrollOffset = scroll.offset;
 
+      // Performance: Simple viewport culling check
+      // Calculate if image is roughly in viewport based on scroll position
+      const scrolledDistance =
+        currentScrollOffset * scroll.pages * viewport.height;
+      const imagePosY = basePosition.y;
+      const distanceFromCamera = Math.abs(scrolledDistance + imagePosY);
+      isInViewport.current = distanceFromCamera < viewport.height * 1.5;
+
+      // Skip complex calculations if far from viewport and not hovered
+      if (!isInViewport.current && !isHovered.current) {
+        // Simplified: Just set to base position
+        groupRef.current.position.y = basePosition.y;
+        return;
+      }
+
       // Calculate raw velocity (how fast we're scrolling)
       const rawVelocity =
         (currentScrollOffset - prevScrollOffset.current) /
         Math.max(delta, 0.001);
       prevScrollOffset.current = currentScrollOffset;
 
-      // Heavily smooth the velocity for butter-smooth motion
-      const velocitySmoothFactor = 1 - Math.pow(0.05, delta);
+      // Heavily smooth the velocity for butter-smooth motion (cached pow)
+      const velocitySmoothFactor = cachedPowValues.velocitySmooth(delta);
       smoothedVelocity.current = THREE.MathUtils.lerp(
         smoothedVelocity.current,
         rawVelocity,
@@ -229,8 +259,8 @@ const FloatingImage = React.forwardRef<Mesh, FloatingImageProps>(
       // Target Y is base position plus the drag offset
       const targetY = basePosition.y + dragOffset;
 
-      // Smooth lerp towards target position
-      const positionSmoothFactor = 1 - Math.pow(1 - smoothness, delta * 60);
+      // Smooth lerp towards target position (cached pow)
+      const positionSmoothFactor = cachedPowValues.positionSmooth(delta);
       smoothedY.current = THREE.MathUtils.lerp(
         smoothedY.current,
         targetY,
@@ -244,6 +274,11 @@ const FloatingImage = React.forwardRef<Mesh, FloatingImageProps>(
     // Animate spring pull + 3D tilt (combined for performance)
     useFrame((_, delta) => {
       if (!tiltRef.current) return;
+
+      // Performance: Skip animation if out of viewport and not interacting
+      if (!isInViewport.current && !isHovered.current) {
+        return;
+      }
 
       // === SPRING PULL EFFECT ===
       if (springEnabled) {
@@ -292,8 +327,8 @@ const FloatingImage = React.forwardRef<Mesh, FloatingImageProps>(
         ? mousePos.current.x * tiltIntensity // Mouse right = right tilts down (positive rotation)
         : 0;
 
-      // Smooth lerp towards target rotation
-      const tiltSmoothFactor = 1 - Math.pow(1 - tiltSmoothness, delta * 60);
+      // Smooth lerp towards target rotation (cached pow)
+      const tiltSmoothFactor = cachedPowValues.tiltSmooth(delta);
       currentTiltRotation.current.x = THREE.MathUtils.lerp(
         currentTiltRotation.current.x,
         targetRotX,

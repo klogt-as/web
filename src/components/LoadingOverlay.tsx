@@ -240,7 +240,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   percentageText: {
     color: "#ffffff",
-    fontSize: "clamp(4rem, 15vw, 12rem)",
+    fontSize: "clamp(4rem, 15vw, 8rem)",
     fontWeight: 700,
     letterSpacing: "-0.02em",
     userSelect: "none",

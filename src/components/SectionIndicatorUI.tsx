@@ -1,4 +1,5 @@
 import { useRef, useLayoutEffect, useState } from "react";
+import { useIsMobile } from "../hooks/useIsMobile";
 
 // Design constants for indicator sizing
 const DOT_SIZE = 8; // px
@@ -18,6 +19,7 @@ export function SectionIndicatorUI({
   isNearSnap,
   isSnapping = false,
 }: SectionIndicatorUIProps) {
+  const isMobile = useIsMobile();
   const [measuredDotSpacing, setMeasuredDotSpacing] = useState(DOT_GAP);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -42,6 +44,10 @@ export function SectionIndicatorUI({
 
   // Calculate translateY for the blob using measured spacing
   const translateY = blobPosition * measuredDotSpacing;
+
+  if (isMobile) {
+    return null;
+  }
 
   return (
     <div ref={containerRef} style={styles.container}>

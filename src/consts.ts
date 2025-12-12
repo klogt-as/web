@@ -15,6 +15,7 @@ export const sections = [
     text: "Lett, responsiv og bygget for nattløp i byen. Glow-in-the-dark detaljer og ultramykt skum.",
     image: Image1,
     accent: "#ff4d62",
+    verticalAlign: "center" as const, // "top" | "center" | "bottom"
   },
   {
     id: "street",
@@ -23,6 +24,7 @@ export const sections = [
     text: "Chunky silhuett, reflektive paneler og premium lær. Laget for streetwear – ikke bare løping.",
     image: Image2,
     accent: "#4d9bff",
+    verticalAlign: "center" as const,
   },
   {
     id: "studio",
@@ -31,5 +33,6 @@ export const sections = [
     text: "Håndnummerert collab – kun 500 par globalt. Mesh, semsket og subtil speilfinish.",
     image: Image3,
     accent: "#9b5bff",
+    verticalAlign: "center" as const,
   },
 ];

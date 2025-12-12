@@ -45,8 +45,8 @@ const Landing: React.FC = () => {
               "transform 800ms cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 800ms ease-out",
           } as React.CSSProperties
         }
-        // Power-saving: render only when we explicitly invalidate (see R3FPowerManager)
-        frameloop="demand"
+        // Continuous rendering for smooth animations
+        frameloop="always"
         // Keep DPR capped so the GPU doesn't burn at native high-dpi all the time
         dpr={[1, 1.5]}
         gl={{ powerPreference: "low-power" }}
@@ -112,31 +112,38 @@ const Landing: React.FC = () => {
                         />
                       </div>
 
-                      <div style={styles.sectionInner}>
-                        <div style={styles.chipRow}>
-                          <span style={styles.chip(section.id)}>
-                            {section.label}
-                          </span>
-                          <span style={styles.chipIndex}>
-                            {String(index + 1).padStart(2, "0")}
-                          </span>
+                      {/* Content wrapper with grid layout */}
+                      <div style={styles.content(isMobile)}>
+                        {/* Left column wrapper - text content */}
+                        <div style={styles.leftColumn}>
+                          <div style={styles.sectionInner}>
+                            <div style={styles.chipRow}>
+                              <span style={styles.chip(section.id)}>
+                                {section.label}
+                              </span>
+                              <span style={styles.chipIndex}>
+                                {String(index + 1).padStart(2, "0")}
+                              </span>
+                            </div>
+
+                            <h1 style={styles.title}>{section.title}</h1>
+                            <p style={styles.text}>{section.text}</p>
+
+                            <button type="button" style={styles.button}>
+                              Se detaljer
+                              <span style={{ fontSize: 16, marginLeft: 8 }}>
+                                →
+                              </span>
+                            </button>
+                          </div>
                         </div>
 
-                        <h1 style={styles.title}>{section.title}</h1>
-                        <p style={styles.text}>{section.text}</p>
-
-                        <button type="button" style={styles.button}>
-                          Se detaljer
-                          <span style={{ fontSize: 16, marginLeft: 8 }}>→</span>
-                        </button>
-                      </div>
-
-                      {/* *** IMPORTANT FIX ***
-                          The HTML <img> tag must be removed 
-                          as the FloatingImage component now handles the visual element.
-                      */}
-                      <div style={styles.imageWrapper}>
-                        {/* <img src={...} /> IS REMOVED HERE */}
+                        {/* Right column wrapper - image area */}
+                        <div style={styles.rightColumn}>
+                          <div style={styles.imageWrapper}>
+                            {/* FloatingImage component handles the visual element */}
+                          </div>
+                        </div>
                       </div>
                     </section>
                   ))}
@@ -193,13 +200,10 @@ const styles: Record<string, React.CSSProperties | any> = {
   },
   section: (isMobile: boolean) => ({
     minHeight: "100vh",
-    display: "grid",
-    gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.2fr) minmax(0, 1fr)",
-    padding: isMobile ? "0 5vw" : "0 8vw",
-    alignItems: "center",
-    gap: isMobile ? "2rem" : "4rem",
     zIndex: 10, // Ensure HTML is above 3D elements
     position: "relative",
+    display: "flex",
+    alignItems: "center",
   }),
   sectionGradient: (accent: string) => ({
     background:
@@ -207,6 +211,30 @@ const styles: Record<string, React.CSSProperties | any> = {
       `radial-gradient(circle at 100% 100%, ${accent}22, transparent 60%)`,
     borderBottom: "1px solid rgba(255,255,255,0.04)",
   }),
+  content: (isMobile: boolean) => ({
+    maxWidth: "1680px",
+    margin: "auto",
+    display: "grid",
+    gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.2fr) minmax(0, 1fr)",
+    padding: isMobile ? "0 6vw" : "0 8vw",
+    alignItems: "center",
+    alignContent: isMobile ? "center" : undefined,
+    gap: isMobile ? "2rem" : "4rem",
+  }),
+  leftColumn: {
+    display: "flex",
+    alignItems: "center",
+    position: "relative" as const,
+    zIndex: 1,
+  },
+  rightColumn: {
+    height: "400px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative" as const,
+    zIndex: 1,
+  },
   sectionInner: {
     maxWidth: 560,
   },

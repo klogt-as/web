@@ -14,6 +14,7 @@ interface SectionData {
   text: string;
   image: { src: string };
   accent: string;
+  verticalAlign?: "top" | "center" | "bottom";
 }
 
 interface LandingSceneProps {
@@ -132,10 +133,43 @@ const LandingScene: React.FC<LandingSceneProps> = ({ sections }) => {
       {/* Floating images for each section */}
       {sections.map((section, index) => {
         const yPosition = -index * pageHeight;
+        const alignment = section.verticalAlign || "center";
 
-        // På mobil: flytt bildet ned for å unngå overlapping med tekst
-        // Offset tilsvarer omtrent halvparten av tekstområdets høyde
-        const mobileYOffset = isMobileScreen ? pageHeight * 0.35 : 0;
+        // Beregn Y-offset basert på alignment og skjermstørrelse
+        let yOffset = 0;
+
+        if (isMobileScreen) {
+          // På mobil: kolonnene stacker vertikalt
+          // Bildene må holde seg innenfor rightColumn-området
+          switch (alignment) {
+            case "top":
+              // Bildet øverst i rightColumn (rett under teksten + gap)
+              yOffset = -pageHeight * 0.1;
+              break;
+            case "center":
+              // Bildet sentrert i rightColumn
+              yOffset = -pageHeight * 0.2;
+              break;
+            case "bottom":
+              // Bildet nederst i rightColumn
+              yOffset = -pageHeight * 0.3;
+              break;
+          }
+        } else {
+          // På desktop: kolonnene er side-ved-side, bildet er allerede riktig plassert
+          // Alignment påvirker kun vertikal posisjon innenfor rightColumn
+          switch (alignment) {
+            case "top":
+              yOffset = pageHeight * 0.2;
+              break;
+            case "center":
+              yOffset = 0; // Standard sentrering
+              break;
+            case "bottom":
+              yOffset = -pageHeight * 0.2;
+              break;
+          }
+        }
 
         return (
           <FloatingImage
@@ -144,7 +178,7 @@ const LandingScene: React.FC<LandingSceneProps> = ({ sections }) => {
             aspect="16:9"
             maxWidth={imageMaxWidth}
             maxHeight={pageHeight * 0.7}
-            position={[imageX, yPosition - mobileYOffset, 2]}
+            position={[imageX, yPosition + yOffset, 2]}
             floatConfig={{
               speed: 1.5,
               rotationIntensity: 0.2,

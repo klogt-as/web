@@ -5,11 +5,11 @@ import { useEffect, useRef, useState } from "react";
  * Power-saving + stability manager for react-three-fiber.
  *
  * Goals:
- * - Avoid burning GPU when the page is idle / hidden.
- * - Provide a small "active window" after user interaction (scroll/mouse/key) to allow smooth animations.
  * - Handle WebGL context lost/restored (common after sleep/wake on hybrid Intel+Nvidia setups).
+ * - Track user activity for potential optimizations.
+ * - Pause animations when page is hidden to save resources.
  *
- * Works best with <Canvas frameloop="demand" />.
+ * Works with <Canvas frameloop="always" />.
  */
 export type R3FPowerManagerProps = {
   /**
@@ -119,30 +119,9 @@ export default function R3FPowerManager({
     };
   }, [gl, invalidate]);
 
-  // Render loop control for frameloop="demand":
-  // Always render when visible, but reduce frame rate when idle for power saving.
-  const frameCountRef = useRef(0);
-
-  useFrame(() => {
-    if (document.hidden) return;
-    if (isWebglContextLost) return;
-
-    frameCountRef.current++;
-
-    const elapsedSinceActivity = Date.now() - lastActivityAt.current;
-    const isIdle = elapsedSinceActivity > idleMs;
-
-    if (isIdle) {
-      // Idle mode: Render every other frame (30 FPS) to save power
-      // This keeps animations smooth while reducing GPU load
-      if (frameCountRef.current % 2 === 0) {
-        invalidate();
-      }
-    } else {
-      // Active mode: Render every frame (60 FPS) for smooth animations
-      invalidate();
-    }
-  });
+  // With frameloop="always", the browser handles the render loop automatically.
+  // We just need to handle visibility changes and context loss/restore.
+  // The activity tracking is kept for potential future optimizations.
 
   return null;
 }
