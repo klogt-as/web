@@ -32,7 +32,7 @@ import type { Mesh } from "three";
 const CONFIG = {
   // Movement settings
   speedMultiplier: 1.0, // Global speed control: 0.5 = half speed, 2.0 = double speed
-  movementRange: 1.2, // Distance spheres move: 0.5 = tight, 1.5 = wide, 2.0 = very wide
+  movementRange: 0.6, // Distance spheres move: 0.5 = tight, 1.5 = wide, 2.0 = very wide
 
   // Blending settings
   blendFactor: 0.3, // Sphere blending: 0.1 = separate spheres, 0.5 = smooth liquid
