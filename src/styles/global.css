@@ -1,8 +1,8 @@
-/*
-  The CSS in this style tag is based off of Bear Blog's default CSS.
-  https://github.com/HermanMartinus/bearblog/blob/297026a877bc2ab2b3bdfbd6b9f7961c350917dd/templates/styles/blog/default.css
-  License MIT: https://github.com/HermanMartinus/bearblog/blob/master/LICENSE.md
- */
+*,
+*::after,
+*::before {
+  box-sizing: border-box;
+}
 
 :root {
   font-size: 20px;
@@ -42,23 +42,25 @@
   font-style: normal;
   font-display: swap;
 }
+
 body {
-  font-family: "Atkinson", sans-serif;
   margin: 0;
   padding: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: "Atkinson", sans-serif;
   text-align: left;
   background: var(--secondary-color);
-  background-size: 100% 600px;
   word-wrap: break-word;
   overflow-wrap: break-word;
   color: var(--font-color);
   line-height: 1.7;
-}
-
-body {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
 }
 
 h1,
@@ -295,4 +297,16 @@ button:active {
   transform: translateY(0px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+}
+
+/* ========================================
+   WebGPU Canvas - Full Viewport
+   ======================================== */
+
+#gl {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+  position: absolute;
+  inset: 0;
 }

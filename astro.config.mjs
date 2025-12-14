@@ -10,4 +10,14 @@ export default defineConfig({
   site: "https://klogt-as.github.io",
   base: "/web",
   integrations: [mdx(), sitemap(), react()],
+  vite: {
+    build: {
+      target: "esnext",
+    },
+    optimizeDeps: {
+      esbuildOptions: {
+        target: "esnext",
+      },
+    },
+  },
 });
