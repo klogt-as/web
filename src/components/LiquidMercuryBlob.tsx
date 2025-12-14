@@ -1,6 +1,7 @@
 // @ts-nocheck - three/tsl doesn't have complete TypeScript definitions yet
 import { useThree, useFrame } from "@react-three/fiber";
 import { useRef, useMemo } from "react";
+import { useIsMobile } from "../hooks/useIsMobile";
 import {
   float,
   Loop,
@@ -10,6 +11,7 @@ import {
   uv,
   vec3,
   sin,
+  cos,
   min,
   max,
   abs,
@@ -24,6 +26,48 @@ import {
 import { MeshBasicNodeMaterial } from "three/webgpu";
 import type { Mesh } from "three";
 
+// ========================================
+// CONFIGURATION - Adjust these values easily!
+// ========================================
+const CONFIG = {
+  // Movement settings
+  speedMultiplier: 1.0, // Global speed control: 0.5 = half speed, 2.0 = double speed
+  movementRange: 1.2, // Distance spheres move: 0.5 = tight, 1.5 = wide, 2.0 = very wide
+
+  // Blending settings
+  blendFactor: 0.3, // Sphere blending: 0.1 = separate spheres, 0.5 = smooth liquid
+
+  // Sphere settings - Add or remove spheres here!
+  // Each sphere has: radius, speed[x,y,z], phase[x,y,z]
+  // - radius: Size of sphere (0.2-0.5 recommended)
+  // - speed: How fast it moves on each axis (0.2-0.5 recommended)
+  // - phase: Starting offset (0-6, makes spheres move differently)
+  spheres: [
+    { radius: 0.4, speed: [0.3, 0.25, 0.2], phase: [0, 1.5, 3.0] },
+    { radius: 0.35, speed: [0.35, 0.28, 0.22], phase: [2.0, 4.2, 1.8] },
+    { radius: 0.3, speed: [0.32, 0.4, 0.27], phase: [5.0, 0.5, 2.5] },
+    { radius: 0.38, speed: [0.38, 0.33, 0.29], phase: [3.5, 1.0, 4.5] },
+    { radius: 0.32, speed: [0.26, 0.42, 0.31], phase: [4.8, 2.7, 0.8] },
+    { radius: 0.36, speed: [0.34, 0.37, 0.24], phase: [1.2, 3.9, 5.5] },
+    // Add more spheres by copying a line above and changing the values!
+    // Example: { radius: 0.3, speed: [0.3, 0.3, 0.2], phase: [1.0, 2.0, 4.0] },
+  ],
+
+  // Global movement - slow drift for the entire scene
+  globalMovement: {
+    speed: [0.15, 0.12, 0.1], // Speed on each axis
+    range: [0.3, 0.25, 0.2], // Distance of global drift
+  },
+};
+// ========================================
+// HOW TO USE:
+// 1. Want faster movement? Increase speedMultiplier to 1.5 or 2.0
+// 2. Want spheres further apart? Increase movementRange to 1.5 or 2.0
+// 3. Want more separate spheres? Decrease blendFactor to 0.15 or 0.2
+// 4. Want more spheres? Copy a sphere line and add it to the array!
+// 5. Want fewer spheres? Delete a sphere line from the array
+// ========================================
+
 const sdSphere = Fn(([p, r]) => {
   return p.length().sub(r);
 });
@@ -36,16 +80,61 @@ const smin = Fn(([a, b, k]) => {
 export const LiquidMercuryBlob = () => {
   const { width, height } = useThree((state) => state.viewport);
   const meshRef = useRef<Mesh>(null);
+  const isMobile = useIsMobile();
+
+  // Use fewer spheres on mobile for better performance
+  const activeSpheres = useMemo(() => {
+    return isMobile ? CONFIG.spheres.slice(0, 3) : CONFIG.spheres;
+  }, [isMobile]);
 
   const material = useMemo(() => {
     const timer = uniform(0);
 
     const sdf = Fn(([pos]) => {
-      const translatedPos = pos.add(vec3(sin(timer), 0, 0));
-      const sphere = sdSphere(translatedPos, 0.5);
-      const secondSphere = sdSphere(pos, 0.3);
+      // Global offset - slow gentle movement for the entire scene
+      const globalOffset = vec3(
+        sin(
+          timer.mul(CONFIG.globalMovement.speed[0] * CONFIG.speedMultiplier)
+        ).mul(CONFIG.globalMovement.range[0]),
+        sin(
+          timer.mul(CONFIG.globalMovement.speed[1] * CONFIG.speedMultiplier)
+        ).mul(CONFIG.globalMovement.range[1]),
+        sin(
+          timer.mul(CONFIG.globalMovement.speed[2] * CONFIG.speedMultiplier)
+        ).mul(CONFIG.globalMovement.range[2])
+      );
 
-      return smin(secondSphere, sphere, 0.3);
+      // Generate sphere positions dynamically from activeSpheres
+      const sphereDistances = activeSpheres.map((sphere, i) => {
+        const posOffset = pos.add(
+          vec3(
+            sin(
+              timer
+                .mul(sphere.speed[0] * CONFIG.speedMultiplier)
+                .add(sphere.phase[0])
+            ).mul(CONFIG.movementRange),
+            sin(
+              timer
+                .mul(sphere.speed[1] * CONFIG.speedMultiplier)
+                .add(sphere.phase[1])
+            ).mul(CONFIG.movementRange),
+            sin(
+              timer
+                .mul(sphere.speed[2] * CONFIG.speedMultiplier)
+                .add(sphere.phase[2])
+            ).mul(CONFIG.movementRange * 0.6)
+          ).add(globalOffset)
+        );
+        return sdSphere(posOffset, sphere.radius);
+      });
+
+      // Blend all spheres together
+      let result = sphereDistances[0].toVar();
+      for (let i = 1; i < sphereDistances.length; i++) {
+        result.assign(smin(result, sphereDistances[i], CONFIG.blendFactor));
+      }
+
+      return result;
     });
 
     const calcNormal = Fn(([p]) => {
@@ -122,8 +211,9 @@ export const LiquidMercuryBlob = () => {
         .sub(screenSize.xy)
         .div(screenSize.y);
 
-      // Initialize the ray and its direction
-      const rayOrigin = vec3(0, 0, -3);
+      // Initialize the ray and its direction - zoom out on mobile for better overview
+      const cameraDistance = isMobile ? -5 : -3;
+      const rayOrigin = vec3(0, 0, cameraDistance);
       const rayDirection = vec3(_uv, 1).normalize();
 
       // Total distance travelled - note that toVar is important here so we can assign to this variable
@@ -159,7 +249,7 @@ export const LiquidMercuryBlob = () => {
     raymarchMaterial.colorNode = raymarch;
 
     return { material: raymarchMaterial, timer };
-  }, []);
+  }, [activeSpheres, isMobile]);
 
   useFrame((state) => {
     // Update the timer uniform using the clock
