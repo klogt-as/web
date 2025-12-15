@@ -39,7 +39,7 @@ const getScatterValues = (scatter: number) => ({
 const MAX_SPHERES = 6; // keep in sync with CONFIG.spheres (max)
 
 export const LiquidMercuryBlob = ({
-  stickyProgress,
+  stickyProgress = 0,
 }: { stickyProgress?: number } = {}) => {
   const { viewport, size } = useThree((s) => ({
     viewport: s.viewport,
@@ -50,11 +50,20 @@ export const LiquidMercuryBlob = ({
   const isMobile = useIsMobile();
   const globalScrollProgress = useScrollProgress();
 
-  // Calculate values from scatter
-  const scatterValues = getScatterValues(CONFIG.scatter);
+  // Calculate dynamic scatter based on stickyProgress
+  // Progress 0-0.5: scatter increases (liquid spreads out a bit)
+  // Progress 0.5-1.0: scatter decreases (merges into tight triangle)
+  const targetScatter =
+    stickyProgress < 0.5
+      ? CONFIG.scatter + stickyProgress * 0.1 // 0.075 → 0.125
+      : CONFIG.scatter - (stickyProgress - 0.5) * 0.15; // 0.125 → 0
+
+  const scatterValues = getScatterValues(targetScatter);
 
   const dynamicMovementRange = useRef(scatterValues.movementRange);
   const dynamicBlendFactor = useRef(scatterValues.blendFactor);
+  const currentMorphFactor = useRef(0);
+  const currentRotation = useRef(0);
 
   const activeCount = isMobile
     ? 3
@@ -96,6 +105,8 @@ export const LiquidMercuryBlob = ({
       uniform float uBlendFactor;
       uniform float uSpeedMultiplier;
       uniform int   uSphereCount;
+      uniform float uMorphFactor;    // 0 = spheres, 1 = triangle
+      uniform float uRotation;       // Y-axis rotation
 
       uniform float uRadii[${MAX_SPHERES}];
       uniform float uSpeed[${MAX_SPHERES * 3}];
@@ -106,6 +117,31 @@ export const LiquidMercuryBlob = ({
 
       float sdSphere(vec3 p, float r) {
         return length(p) - r;
+      }
+
+      // Smooth tetrahedron (4-sided pyramid) with rounded edges
+      float sdTetrahedron(vec3 p, float size) {
+        // Regular tetrahedron with vertices at specific coordinates
+        float k = sqrt(2.0);
+        vec3 a = vec3(1.0, 0.0, -1.0/k);
+        vec3 b = vec3(-1.0, 0.0, -1.0/k);
+        vec3 c = vec3(0.0, 0.0, 1.0*k);
+        vec3 d = vec3(0.0, 1.5*k, 0.0);
+        
+        // Scale
+        p /= size;
+        
+        // Calculate distance to each face
+        float d1 = dot(p - a, normalize(cross(b - a, c - a)));
+        float d2 = dot(p - a, normalize(cross(c - a, d - a)));
+        float d3 = dot(p - a, normalize(cross(d - a, b - a)));
+        float d4 = dot(p - b, normalize(cross(d - b, c - b)));
+        
+        // Maximum distance to any face (inside = negative)
+        float dist = max(max(d1, d2), max(d3, d4));
+        
+        // Add rounding for smooth liquid feel
+        return (dist - 0.08) * size;
       }
 
       float smin(float a, float b, float k) {
@@ -121,11 +157,25 @@ export const LiquidMercuryBlob = ({
         );
       }
 
+      // Rotation matrix around Y axis
+      mat3 rotateY(float angle) {
+        float s = sin(angle);
+        float c = cos(angle);
+        return mat3(
+          c, 0.0, s,
+          0.0, 1.0, 0.0,
+          -s, 0.0, c
+        );
+      }
+
       float sdf(vec3 pos) {
+        // Apply rotation
+        pos = rotateY(uRotation) * pos;
+        
         vec3 go = globalOffset(uTime);
 
-        float d = 1e9;
-        // Start with first sphere for stable smin chain
+        // Calculate sphere metaball
+        float sphereD = 1e9;
         for (int i = 0; i < ${MAX_SPHERES}; i++) {
           if (i >= uSphereCount) break;
 
@@ -136,9 +186,16 @@ export const LiquidMercuryBlob = ({
           vec3 p = pos + vec3(sx, sy, sz) + go;
           float di = sdSphere(p, uRadii[i]);
 
-          if (i == 0) d = di;
-          else d = smin(d, di, uBlendFactor);
+          if (i == 0) sphereD = di;
+          else sphereD = smin(sphereD, di, uBlendFactor);
         }
+
+        // Calculate triangle shape (centered and scaled appropriately)
+        float triangleD = sdTetrahedron(pos + go, 1.2);
+        
+        // Smooth morph between shapes
+        float d = mix(sphereD, triangleD, smoothstep(0.0, 1.0, uMorphFactor));
+        
         return d;
       }
 
@@ -163,7 +220,7 @@ export const LiquidMercuryBlob = ({
         vec3 diffuse = dp * lightColor;
 
         vec3 skyColor = vec3(0.0, 0.3, 0.6);
-        vec3 groundColor = vec3(0.6, 0.3, 0.1);
+        vec3 groundColor = vec3(0.0, 0.0, 0.0);  // Changed to black to remove red glow
         float hemiMix = n.y * 0.5 + 0.5;
         vec3 hemi = mix(groundColor, skyColor, hemiMix);
 
@@ -241,6 +298,9 @@ export const LiquidMercuryBlob = ({
             CONFIG.globalMovement.range[2] * scatterValues.globalMovementFactor
           ),
         },
+
+        uMorphFactor: { value: 0 },
+        uRotation: { value: 0 },
       },
     });
 
@@ -252,10 +312,15 @@ export const LiquidMercuryBlob = ({
   }, [activeCount, isMobile, size.width, size.height]);
 
   useFrame((state) => {
-    // Use CONFIG.scatter values directly instead of scrollOffset
-    const currentScatterValues = getScatterValues(CONFIG.scatter);
+    // Calculate dynamic scatter based on stickyProgress
+    const targetScatter =
+      stickyProgress < 0.5
+        ? CONFIG.scatter + stickyProgress * 0.1
+        : CONFIG.scatter - (stickyProgress - 0.5) * 0.15;
 
-    // Smooth transition to target values from CONFIG
+    const currentScatterValues = getScatterValues(targetScatter);
+
+    // Smooth transition to target values
     dynamicMovementRange.current = lerp(
       dynamicMovementRange.current,
       currentScatterValues.movementRange,
@@ -268,10 +333,28 @@ export const LiquidMercuryBlob = ({
       0.05
     );
 
+    // Morph factor: starts at progress 0.5, complete at 1.0
+    const targetMorph = stickyProgress < 0.5 ? 0 : (stickyProgress - 0.5) * 2.0;
+    currentMorphFactor.current = lerp(
+      currentMorphFactor.current,
+      targetMorph,
+      0.05
+    );
+
+    // Rotation: gradually increase with progress
+    const targetRotation = stickyProgress * Math.PI * 2;
+    currentRotation.current = lerp(
+      currentRotation.current,
+      targetRotation,
+      0.05
+    );
+
     material.uniforms.uTime.value = state.clock.getElapsedTime();
     material.uniforms.uMovementRange.value = dynamicMovementRange.current;
     material.uniforms.uBlendFactor.value = dynamicBlendFactor.current;
     material.uniforms.uSphereCount.value = activeCount;
+    material.uniforms.uMorphFactor.value = currentMorphFactor.current;
+    material.uniforms.uRotation.value = currentRotation.current;
 
     // Update speed multiplier from CONFIG
     material.uniforms.uSpeedMultiplier.value = CONFIG.speedMultiplier;

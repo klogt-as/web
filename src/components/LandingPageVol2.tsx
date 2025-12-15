@@ -2,27 +2,35 @@ import {
   GlobalCanvas,
   SmoothScrollbar,
   UseCanvas,
+  useTracker,
 } from "@14islands/r3f-scroll-rig";
 import { StickyScrollScene } from "@14islands/r3f-scroll-rig/powerups";
 import { useFrame } from "@react-three/fiber";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { LiquidMercuryBlob } from "./LiquidMercuryBlob";
 import { useIsMobile } from "../hooks/useIsMobile";
 
 import "./LandingPageVol2.styles.css";
 import type { JSX } from "react/jsx-runtime";
 import LiquidButton from "./LiquidButton";
+import { AnimatedHeroSection } from "./AnimatedHeroSection";
+import LoadingOverlay from "./LoadingOverlay";
 
-function HeroSection() {
+interface HeroSectionData {
+  id: string;
+  label: string;
+  title: string;
+  text: string;
+  accent: string;
+}
+
+interface HeroSectionProps {
+  data: HeroSectionData;
+  index: number;
+}
+
+function HeroSection({ data, index }: HeroSectionProps) {
   const isMobile = useIsMobile();
-
-  const sectionData = {
-    id: "hero",
-    label: "Realisering",
-    title: "Ideer flyter. Vi gjør dem konkrete.",
-    text: "Med riktig teknologi og erfaring former vi visjonene dine til digitale opplevelser som engasjerer, virker og vokser. Din idé fortjener å bli virkeliggjort.",
-    accent: "#1d1d1d",
-  };
 
   const styles = {
     heroSection: {
@@ -87,15 +95,17 @@ function HeroSection() {
         <div style={styles.textContent}>
           {/* Chip Row */}
           <div style={styles.chipRow}>
-            <span style={styles.chip}>{sectionData.label}</span>
-            <span style={styles.chipIndex}>{String(1).padStart(2, "0")}</span>
+            <span style={styles.chip}>{data.label}</span>
+            <span style={styles.chipIndex}>
+              {String(index).padStart(2, "0")}
+            </span>
           </div>
 
           {/* Title */}
-          <h1 style={styles.title(isMobile)}>{sectionData.title}</h1>
+          <h1 style={styles.title(isMobile)}>{data.title}</h1>
 
           {/* Text */}
-          <p style={styles.text(isMobile)}>{sectionData.text}</p>
+          <p style={styles.text(isMobile)}>{data.text}</p>
 
           {/* Button */}
           {/* <LiquidButton label="Se detaljer" /> */}
@@ -105,8 +115,21 @@ function HeroSection() {
   );
 }
 
-function SpinningBox({ scale, scrollState, inViewport }) {
-  const box = useRef(null);
+function ScrollProgressUpdater({
+  scrollState,
+  onProgressChange,
+}: {
+  scrollState: any;
+  onProgressChange: (progress: number) => void;
+}) {
+  useFrame(() => {
+    onProgressChange(scrollState.progress);
+  });
+  return null;
+}
+
+function SpinningBox({ scale, scrollState, inViewport }: any) {
+  const box = useRef<any>(null);
   const size = scale.xy.min() * 0.5;
   const targetScale = useRef(size);
   const currentScale = useRef(0);
@@ -125,16 +148,49 @@ function SpinningBox({ scale, scrollState, inViewport }) {
     }
   });
 
-  return <LiquidMercuryBlob />;
+  return <LiquidMercuryBlob stickyProgress={scrollState.progress} />;
 }
 
 function StickySection() {
-  const el = useRef(null);
+  const el = useRef<HTMLDivElement>(null);
+
+  // Reactive progress state that updates from R3F
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  const heroSection1Data: HeroSectionData = {
+    id: "hero-1",
+    label: "Realisering",
+    title: "Ideer flyter. Vi gjør dem konkrete.",
+    text: "Med riktig teknologi og erfaring former vi visjonene dine til digitale opplevelser som engasjerer, virker og vokser. Din idé fortjener å bli virkeliggjort.",
+    accent: "#1d1d1d",
+  };
+
+  const heroSection2Data: HeroSectionData = {
+    id: "hero-2",
+    label: "Transformasjon",
+    title: "Fra visjon til virkelighet.",
+    text: "Vi former digitale løsninger som vokser med din ambisjon. Gjennom innovativ teknologi og gjennomtenkt design skaper vi opplevelser som holder.",
+    accent: "#1d1d1d",
+  };
+
   return (
     <section>
-      <div className="StickyContainer">
+      <div className="StickyContainer" style={{ height: "500vh" }}>
         <div ref={el} className="SomeStickyContent Debug">
-          <HeroSection />
+          <AnimatedHeroSection
+            scrollProgress={scrollProgress}
+            visibleFrom={0}
+            visibleTo={0.5}
+          >
+            <HeroSection data={heroSection1Data} index={1} />
+          </AnimatedHeroSection>
+          <AnimatedHeroSection
+            scrollProgress={scrollProgress}
+            visibleFrom={0.5}
+            visibleTo={1.0}
+          >
+            <HeroSection data={heroSection2Data} index={2} />
+          </AnimatedHeroSection>
         </div>
       </div>
       <UseCanvas>
@@ -147,6 +203,10 @@ function StickySection() {
             }
           ) => (
             <>
+              <ScrollProgressUpdater
+                scrollState={props.scrollState}
+                onProgressChange={setScrollProgress}
+              />
               <SpinningBox {...props} />
             </>
           )}
@@ -250,20 +310,26 @@ type Props = {};
 
 export default function LandingPageVol2({}: Props) {
   const [isTouch, setTouch] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const isMobile = useIsMobile();
 
   useEffect(() => {
-    const isTouch =
-      "ontouchstart" in window ||
-      navigator.maxTouchPoints > 0 ||
-      navigator.msMaxTouchPoints > 0;
+    const isTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
     setTouch(isTouch);
   }, []);
 
   return (
     <>
+      <LoadingOverlay
+        onComplete={() => setIsLoading(false)}
+        minDisplayTime={1500}
+        slideDelay={400}
+        slideDuration={800}
+      />
       <GlobalCanvas style={{ zIndex: -1 }} dpr={isMobile ? [1, 1.5] : [1, 2]}>
-        {/* UseCanvas children will be inserted here */}
+        <Suspense fallback={null}>
+          {/* UseCanvas children will be inserted here */}
+        </Suspense>
       </GlobalCanvas>
       <SmoothScrollbar>
         {(bind) => (

@@ -45,8 +45,7 @@ body {
 }
 
 .StickyContainer {
-  height: 500vh;
-  position: relative; /* IMPORTANT! */
+  position: relative;
 }
 
 .SomeStickyContent {
