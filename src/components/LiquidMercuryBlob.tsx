@@ -2,7 +2,6 @@ import { useThree, useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import { ShaderMaterial, Vector2, Vector3, type Mesh } from "three";
 import { useIsMobile } from "../hooks/useIsMobile";
-import { useScrollProgress } from "../hooks/useScrollProgress";
 
 // ========================================
 // CONFIGURATION
@@ -11,15 +10,45 @@ const CONFIG = {
   speedMultiplier: 1.0,
 
   // Scatter control: 0 = liquid/merged, 1 = maximally scattered
-  scatter: 0.075,
+  scatter: 0.26,
 
   spheres: [
-    { radius: 0.4, speed: [0.3, 0.25, 0.2], phase: [0, 1.5, 3.0] },
-    { radius: 0.35, speed: [0.35, 0.28, 0.22], phase: [2.0, 4.2, 1.8] },
-    { radius: 0.3, speed: [0.32, 0.4, 0.27], phase: [5.0, 0.5, 2.5] },
-    { radius: 0.38, speed: [0.38, 0.33, 0.29], phase: [3.5, 1.0, 4.5] },
-    { radius: 0.32, speed: [0.26, 0.42, 0.31], phase: [4.8, 2.7, 0.8] },
-    { radius: 0.36, speed: [0.34, 0.37, 0.24], phase: [1.2, 3.9, 5.5] },
+    {
+      radius: 0.4,
+      speed: [0.3, 0.25, 0.2],
+      phase: [0, 1.5, 3.0],
+      trianglePos: [0.0, 1.1, 0.0], // Top of triangle
+    },
+    {
+      radius: 0.35,
+      speed: [0.35, 0.28, 0.22],
+      phase: [2.0, 4.2, 1.8],
+      trianglePos: [-0.6, 0.2, 0.0], // Middle left
+    },
+    {
+      radius: 0.3,
+      speed: [0.32, 0.4, 0.27],
+      phase: [5.0, 0.5, 2.5],
+      trianglePos: [0.6, 0.2, 0.0], // Middle right
+    },
+    {
+      radius: 0.38,
+      speed: [0.38, 0.33, 0.29],
+      phase: [3.5, 1.0, 4.5],
+      trianglePos: [-1.0, -0.7, 0.0], // Bottom left
+    },
+    {
+      radius: 0.32,
+      speed: [0.26, 0.42, 0.31],
+      phase: [4.8, 2.7, 0.8],
+      trianglePos: [0.0, -0.7, 0.0], // Bottom center
+    },
+    {
+      radius: 0.36,
+      speed: [0.34, 0.37, 0.24],
+      phase: [1.2, 3.9, 5.5],
+      trianglePos: [1.0, -0.7, 0.0], // Bottom right
+    },
   ],
   globalMovement: {
     speed: [0.15, 0.12, 0.1],
@@ -39,8 +68,10 @@ const getScatterValues = (scatter: number) => ({
 const MAX_SPHERES = 6; // keep in sync with CONFIG.spheres (max)
 
 export const LiquidMercuryBlob = ({
-  stickyProgress = 0,
-}: { stickyProgress?: number } = {}) => {
+  scrollProgressRef,
+}: {
+  scrollProgressRef: React.RefObject<number>;
+}) => {
   const { viewport, size } = useThree((s) => ({
     viewport: s.viewport,
     size: s.size,
@@ -48,22 +79,11 @@ export const LiquidMercuryBlob = ({
   const { width: viewportWidth, height: viewportHeight } = viewport;
   const meshRef = useRef<Mesh>(null);
   const isMobile = useIsMobile();
-  const globalScrollProgress = useScrollProgress();
 
-  // Calculate dynamic scatter based on stickyProgress
-  // Progress 0-0.5: scatter increases (liquid spreads out a bit)
-  // Progress 0.5-1.0: scatter decreases (merges into tight triangle)
-  const targetScatter =
-    stickyProgress < 0.5
-      ? CONFIG.scatter + stickyProgress * 0.1 // 0.075 → 0.125
-      : CONFIG.scatter - (stickyProgress - 0.5) * 0.15; // 0.125 → 0
-
-  const scatterValues = getScatterValues(targetScatter);
-
-  const dynamicMovementRange = useRef(scatterValues.movementRange);
-  const dynamicBlendFactor = useRef(scatterValues.blendFactor);
-  const currentMorphFactor = useRef(0);
-  const currentRotation = useRef(0);
+  // Initialize refs with base values - will be updated in useFrame
+  const dynamicMovementRange = useRef(0.4); // Start with tight movement
+  const dynamicBlendFactor = useRef(0.35); // Start with liquid blend
+  const currentMorphFactor = useRef(0); // 0 = floating, 1 = triangle formation
 
   const activeCount = isMobile
     ? 3
@@ -74,6 +94,7 @@ export const LiquidMercuryBlob = ({
     const radii = new Float32Array(MAX_SPHERES);
     const speed = new Float32Array(MAX_SPHERES * 3);
     const phase = new Float32Array(MAX_SPHERES * 3);
+    const trianglePos = new Float32Array(MAX_SPHERES * 3);
 
     for (let i = 0; i < MAX_SPHERES; i++) {
       const s = CONFIG.spheres[i] ?? CONFIG.spheres[0];
@@ -84,6 +105,9 @@ export const LiquidMercuryBlob = ({
       phase[i * 3 + 0] = s.phase[0];
       phase[i * 3 + 1] = s.phase[1];
       phase[i * 3 + 2] = s.phase[2];
+      trianglePos[i * 3 + 0] = s.trianglePos[0];
+      trianglePos[i * 3 + 1] = s.trianglePos[1];
+      trianglePos[i * 3 + 2] = s.trianglePos[2];
     }
 
     const vertexShader = /* glsl */ `
@@ -105,43 +129,18 @@ export const LiquidMercuryBlob = ({
       uniform float uBlendFactor;
       uniform float uSpeedMultiplier;
       uniform int   uSphereCount;
-      uniform float uMorphFactor;    // 0 = spheres, 1 = triangle
-      uniform float uRotation;       // Y-axis rotation
 
       uniform float uRadii[${MAX_SPHERES}];
       uniform float uSpeed[${MAX_SPHERES * 3}];
       uniform float uPhase[${MAX_SPHERES * 3}];
+      uniform float uTrianglePos[${MAX_SPHERES * 3}];
+      uniform float uMorphFactor;
 
       uniform vec3 uGlobalSpeed;
       uniform vec3 uGlobalRange;
 
       float sdSphere(vec3 p, float r) {
         return length(p) - r;
-      }
-
-      // Smooth tetrahedron (4-sided pyramid) with rounded edges
-      float sdTetrahedron(vec3 p, float size) {
-        // Regular tetrahedron with vertices at specific coordinates
-        float k = sqrt(2.0);
-        vec3 a = vec3(1.0, 0.0, -1.0/k);
-        vec3 b = vec3(-1.0, 0.0, -1.0/k);
-        vec3 c = vec3(0.0, 0.0, 1.0*k);
-        vec3 d = vec3(0.0, 1.5*k, 0.0);
-        
-        // Scale
-        p /= size;
-        
-        // Calculate distance to each face
-        float d1 = dot(p - a, normalize(cross(b - a, c - a)));
-        float d2 = dot(p - a, normalize(cross(c - a, d - a)));
-        float d3 = dot(p - a, normalize(cross(d - a, b - a)));
-        float d4 = dot(p - b, normalize(cross(d - b, c - b)));
-        
-        // Maximum distance to any face (inside = negative)
-        float dist = max(max(d1, d2), max(d3, d4));
-        
-        // Add rounding for smooth liquid feel
-        return (dist - 0.08) * size;
       }
 
       float smin(float a, float b, float k) {
@@ -157,44 +156,36 @@ export const LiquidMercuryBlob = ({
         );
       }
 
-      // Rotation matrix around Y axis
-      mat3 rotateY(float angle) {
-        float s = sin(angle);
-        float c = cos(angle);
-        return mat3(
-          c, 0.0, s,
-          0.0, 1.0, 0.0,
-          -s, 0.0, c
-        );
-      }
-
       float sdf(vec3 pos) {
-        // Apply rotation
-        pos = rotateY(uRotation) * pos;
-        
         vec3 go = globalOffset(uTime);
 
-        // Calculate sphere metaball
-        float sphereD = 1e9;
+        // Calculate sphere metaballs
+        float d = 1e9;
+        
+        // Reduce individual movement as we morph to triangle
+        float movementFactor = 1.0 - uMorphFactor;
+        
         for (int i = 0; i < ${MAX_SPHERES}; i++) {
           if (i >= uSphereCount) break;
 
-          float sx = sin(uTime * uSpeed[i*3+0] * uSpeedMultiplier + uPhase[i*3+0]) * uMovementRange;
-          float sy = sin(uTime * uSpeed[i*3+1] * uSpeedMultiplier + uPhase[i*3+1]) * uMovementRange;
-          float sz = sin(uTime * uSpeed[i*3+2] * uSpeedMultiplier + uPhase[i*3+2]) * (uMovementRange * 0.6);
+          // Individual floating movement
+          float sx = sin(uTime * uSpeed[i*3+0] * uSpeedMultiplier + uPhase[i*3+0]) * uMovementRange * movementFactor;
+          float sy = sin(uTime * uSpeed[i*3+1] * uSpeedMultiplier + uPhase[i*3+1]) * uMovementRange * movementFactor;
+          float sz = sin(uTime * uSpeed[i*3+2] * uSpeedMultiplier + uPhase[i*3+2]) * (uMovementRange * 0.6) * movementFactor;
+          vec3 floatPos = vec3(sx, sy, sz);
+          
+          // Target triangle position
+          vec3 targetPos = vec3(uTrianglePos[i*3+0], uTrianglePos[i*3+1], uTrianglePos[i*3+2]);
+          
+          // Interpolate between floating and triangle position
+          vec3 finalPos = mix(floatPos, targetPos, uMorphFactor);
 
-          vec3 p = pos + vec3(sx, sy, sz) + go;
+          vec3 p = pos + finalPos + go;
           float di = sdSphere(p, uRadii[i]);
 
-          if (i == 0) sphereD = di;
-          else sphereD = smin(sphereD, di, uBlendFactor);
+          if (i == 0) d = di;
+          else d = smin(d, di, uBlendFactor);
         }
-
-        // Calculate triangle shape (centered and scaled appropriately)
-        float triangleD = sdTetrahedron(pos + go, 1.2);
-        
-        // Smooth morph between shapes
-        float d = mix(sphereD, triangleD, smoothstep(0.0, 1.0, uMorphFactor));
         
         return d;
       }
@@ -275,14 +266,16 @@ export const LiquidMercuryBlob = ({
       uniforms: {
         uTime: { value: 0 },
         uResolution: { value: new Vector2(size.width, size.height) }, // Set in useFrame (incl DPR)
-        uMovementRange: { value: scatterValues.movementRange },
-        uBlendFactor: { value: scatterValues.blendFactor },
+        uMovementRange: { value: 0.4 }, // Start with tight movement
+        uBlendFactor: { value: 0.35 }, // Start with liquid blend
         uSpeedMultiplier: { value: CONFIG.speedMultiplier },
         uSphereCount: { value: activeCount },
 
         uRadii: { value: radii },
         uSpeed: { value: speed },
         uPhase: { value: phase },
+        uTrianglePos: { value: trianglePos },
+        uMorphFactor: { value: 0 },
 
         uGlobalSpeed: {
           value: new Vector3(
@@ -293,14 +286,11 @@ export const LiquidMercuryBlob = ({
         },
         uGlobalRange: {
           value: new Vector3(
-            CONFIG.globalMovement.range[0] * scatterValues.globalMovementFactor,
-            CONFIG.globalMovement.range[1] * scatterValues.globalMovementFactor,
-            CONFIG.globalMovement.range[2] * scatterValues.globalMovementFactor
+            CONFIG.globalMovement.range[0],
+            CONFIG.globalMovement.range[1],
+            CONFIG.globalMovement.range[2]
           ),
         },
-
-        uMorphFactor: { value: 0 },
-        uRotation: { value: 0 },
       },
     });
 
@@ -312,11 +302,12 @@ export const LiquidMercuryBlob = ({
   }, [activeCount, isMobile, size.width, size.height]);
 
   useFrame((state) => {
-    // Calculate dynamic scatter based on stickyProgress
-    const targetScatter =
-      stickyProgress < 0.5
-        ? CONFIG.scatter + stickyProgress * 0.1
-        : CONFIG.scatter - (stickyProgress - 0.5) * 0.15;
+    // Read scrollProgress from ref - this updates every frame
+    const scrollProgress = scrollProgressRef.current;
+
+    // Calculate dynamic scatter based on scrollProgress
+    // Starts immediately at 0% scroll
+    const targetScatter = Math.max(0, CONFIG.scatter * (1 - scrollProgress));
 
     const currentScatterValues = getScatterValues(targetScatter);
 
@@ -333,19 +324,11 @@ export const LiquidMercuryBlob = ({
       0.05
     );
 
-    // Morph factor: starts at progress 0.5, complete at 1.0
-    const targetMorph = stickyProgress < 0.5 ? 0 : (stickyProgress - 0.5) * 2.0;
+    // Morph factor: starts immediately, complete at 0.6 (60% scroll)
+    const targetMorph = Math.min(1, scrollProgress / 0.6);
     currentMorphFactor.current = lerp(
       currentMorphFactor.current,
       targetMorph,
-      0.05
-    );
-
-    // Rotation: gradually increase with progress
-    const targetRotation = stickyProgress * Math.PI * 2;
-    currentRotation.current = lerp(
-      currentRotation.current,
-      targetRotation,
       0.05
     );
 
@@ -354,7 +337,6 @@ export const LiquidMercuryBlob = ({
     material.uniforms.uBlendFactor.value = dynamicBlendFactor.current;
     material.uniforms.uSphereCount.value = activeCount;
     material.uniforms.uMorphFactor.value = currentMorphFactor.current;
-    material.uniforms.uRotation.value = currentRotation.current;
 
     // Update speed multiplier from CONFIG
     material.uniforms.uSpeedMultiplier.value = CONFIG.speedMultiplier;

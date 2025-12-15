@@ -179,16 +179,16 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
       rounded === 100
     ) {
       // eslint-disable-next-line no-console
-      console.log(`[LoadingOverlay] ${rounded}%`, {
-        displayedProgress: displayedProgress.toFixed(1),
-        assetProgress: assetProgress.toFixed(1),
-        active,
-        total,
-        isAssetTracked,
-        canFinish,
-        isComplete,
-        isSliding,
-      });
+      // console.log(`[LoadingOverlay] ${rounded}%`, {
+      //   displayedProgress: displayedProgress.toFixed(1),
+      //   assetProgress: assetProgress.toFixed(1),
+      //   active,
+      //   total,
+      //   isAssetTracked,
+      //   canFinish,
+      //   isComplete,
+      //   isSliding,
+      // });
     }
   }, [
     DEBUG,

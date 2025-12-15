@@ -63,7 +63,7 @@ function HeroSection({ data, index }: HeroSectionProps) {
       padding: "4px 10px",
       borderRadius: 999,
       border: "1px solid rgba(255,255,255,0.16)",
-      background: "rgba(255, 224, 224, 0.2)",
+      background: "rgba(0, 0, 0, 0.2)",
       color: "#fdfeec",
     },
     chipIndex: {
@@ -117,44 +117,26 @@ function HeroSection({ data, index }: HeroSectionProps) {
 
 function ScrollProgressUpdater({
   scrollState,
+  progressRef,
   onProgressChange,
 }: {
   scrollState: any;
+  progressRef: React.MutableRefObject<number>;
   onProgressChange: (progress: number) => void;
 }) {
   useFrame(() => {
-    onProgressChange(scrollState.progress);
+    const progress = scrollState.progress;
+    progressRef.current = progress; // Update ref for R3F components
+    onProgressChange(progress); // Update state for React components
   });
   return null;
-}
-
-function SpinningBox({ scale, scrollState, inViewport }: any) {
-  const box = useRef<any>(null);
-  const size = scale.xy.min() * 0.5;
-  const targetScale = useRef(size);
-  const currentScale = useRef(0);
-
-  useFrame((state, delta) => {
-    if (box.current) {
-      // Rotate based on scroll
-      box.current.rotation.y = scrollState.progress * Math.PI * 2;
-
-      // Smooth scale transition (lerp)
-      targetScale.current = inViewport ? size : size * 0.0;
-      currentScale.current +=
-        (targetScale.current - currentScale.current) * 0.1;
-
-      box.current.scale.setScalar(currentScale.current);
-    }
-  });
-
-  return <LiquidMercuryBlob stickyProgress={scrollState.progress} />;
 }
 
 function StickySection() {
   const el = useRef<HTMLDivElement>(null);
 
-  // Reactive progress state that updates from R3F
+  // Use ref instead of state to avoid re-render issues with R3F
+  const scrollProgressRef = useRef(0);
   const [scrollProgress, setScrollProgress] = useState(0);
 
   const heroSection1Data: HeroSectionData = {
@@ -205,9 +187,10 @@ function StickySection() {
             <>
               <ScrollProgressUpdater
                 scrollState={props.scrollState}
+                progressRef={scrollProgressRef}
                 onProgressChange={setScrollProgress}
               />
-              <SpinningBox {...props} />
+              <LiquidMercuryBlob scrollProgressRef={scrollProgressRef} />
             </>
           )}
         </StickyScrollScene>
