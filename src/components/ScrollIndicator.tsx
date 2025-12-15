@@ -1,15 +1,12 @@
-import { useRef } from "react";
-import { useScroll } from "@react-three/drei";
-import { useFrame } from "@react-three/fiber";
+import { useRef, useEffect } from "react";
+import { useScrollProgress } from "../hooks/useScrollProgress";
 
 export function ScrollIndicator() {
   const ref = useRef<HTMLDivElement>(null);
-  const scroll = useScroll();
+  const scrollOffset = useScrollProgress();
 
-  useFrame(() => {
+  useEffect(() => {
     if (!ref.current) return;
-
-    const scrollOffset = scroll.offset;
 
     // Fade out as user starts scrolling
     // Fully visible at 0, start fading at 0.05, fully hidden at 0.15
@@ -19,7 +16,7 @@ export function ScrollIndicator() {
     }
 
     ref.current.style.opacity = opacity.toString();
-  });
+  }, [scrollOffset]);
 
   return (
     <div ref={ref} style={styles.container}>

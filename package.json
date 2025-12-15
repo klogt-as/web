@@ -10,18 +10,21 @@
   },
   "packageManager": "pnpm@10.25.0+sha512.5e82639027af37cf832061bcc6d639c219634488e0f2baebe785028a793de7b525ffcd3f7ff574f5e9860654e098fe852ba8ac5dd5cefe1767d23a020a92f501",
   "dependencies": {
+    "@14islands/r3f-scroll-rig": "^8.15.0",
     "@astrojs/mdx": "^4.3.12",
     "@astrojs/react": "^4.4.2",
     "@astrojs/rss": "^4.0.14",
     "@astrojs/sitemap": "^3.6.0",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.4.2",
+    "@studio-freight/lenis": "^1.0.42",
+    "@studio-freight/react-lenis": "^0.0.47",
     "astro": "^5.16.4",
     "motion": "^12.23.26",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "sharp": "^0.34.3",
-    "three": "^0.181.2"
+    "three": "^0.182.0"
   },
   "devDependencies": {
     "@types/react": "^19.2.7",

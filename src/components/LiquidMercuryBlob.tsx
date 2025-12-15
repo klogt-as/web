@@ -1,48 +1,18 @@
-// @ts-nocheck - three/tsl doesn't have complete TypeScript definitions yet
 import { useThree, useFrame } from "@react-three/fiber";
-import { useRef, useMemo } from "react";
+import { useMemo, useRef } from "react";
+import { ShaderMaterial, Vector2, Vector3, type Mesh } from "three";
 import { useIsMobile } from "../hooks/useIsMobile";
-import { useScroll } from "@react-three/drei";
-import {
-  float,
-  Loop,
-  If,
-  Break,
-  Fn,
-  uv,
-  vec3,
-  sin,
-  cos,
-  min,
-  max,
-  abs,
-  mix,
-  normalize,
-  dot,
-  reflect,
-  vec2,
-  screenSize,
-  uniform,
-} from "three/tsl";
-import { MeshBasicNodeMaterial } from "three/webgpu";
-import type { Mesh } from "three";
+import { useScrollProgress } from "../hooks/useScrollProgress";
 
 // ========================================
-// CONFIGURATION - Adjust these values easily!
+// CONFIGURATION
 // ========================================
 const CONFIG = {
-  // Movement settings
-  speedMultiplier: 1.0, // Global speed control: 0.5 = half speed, 2.0 = double speed
-  movementRange: 0.6, // Distance spheres move: 0.5 = tight, 1.5 = wide, 2.0 = very wide
+  speedMultiplier: 1.0,
 
-  // Blending settings
-  blendFactor: 0.3, // Sphere blending: 0.1 = separate spheres, 0.5 = smooth liquid
+  // Scatter control: 0 = liquid/merged, 1 = maximally scattered
+  scatter: 0.075,
 
-  // Sphere settings - Add or remove spheres here!
-  // Each sphere has: radius, speed[x,y,z], phase[x,y,z]
-  // - radius: Size of sphere (0.2-0.5 recommended)
-  // - speed: How fast it moves on each axis (0.2-0.5 recommended)
-  // - phase: Starting offset (0-6, makes spheres move differently)
   spheres: [
     { radius: 0.4, speed: [0.3, 0.25, 0.2], phase: [0, 1.5, 3.0] },
     { radius: 0.35, speed: [0.35, 0.28, 0.22], phase: [2.0, 4.2, 1.8] },
@@ -50,257 +20,309 @@ const CONFIG = {
     { radius: 0.38, speed: [0.38, 0.33, 0.29], phase: [3.5, 1.0, 4.5] },
     { radius: 0.32, speed: [0.26, 0.42, 0.31], phase: [4.8, 2.7, 0.8] },
     { radius: 0.36, speed: [0.34, 0.37, 0.24], phase: [1.2, 3.9, 5.5] },
-    // Add more spheres by copying a line above and changing the values!
-    // Example: { radius: 0.3, speed: [0.3, 0.3, 0.2], phase: [1.0, 2.0, 4.0] },
   ],
-
-  // Global movement - slow drift for the entire scene
   globalMovement: {
-    speed: [0.15, 0.12, 0.1], // Speed on each axis
-    range: [0.3, 0.25, 0.2], // Distance of global drift
+    speed: [0.15, 0.12, 0.1],
+    range: [0.3, 0.25, 0.2],
   },
 };
-// ========================================
-// HOW TO USE:
-// 1. Want faster movement? Increase speedMultiplier to 1.5 or 2.0
-// 2. Want spheres further apart? Increase movementRange to 1.5 or 2.0
-// 3. Want more separate spheres? Decrease blendFactor to 0.15 or 0.2
-// 4. Want more spheres? Copy a sphere line and add it to the array!
-// 5. Want fewer spheres? Delete a sphere line from the array
-// ========================================
 
-const sdSphere = Fn(([p, r]) => {
-  return p.length().sub(r);
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+// Calculate values based on scatter (0-1)
+const getScatterValues = (scatter: number) => ({
+  movementRange: lerp(0.4, 3.5, scatter), // 0.4 = tight, 3.5 = very scattered
+  blendFactor: lerp(0.35, 0.001, scatter), // 0.35 = liquid, 0.001 = almost no merge
+  globalMovementFactor: lerp(1.0, 0.1, scatter), // reduce global movement when scattered
 });
 
-const smin = Fn(([a, b, k]) => {
-  const h = max(k.sub(abs(a.sub(b))), 0).div(k);
-  return min(a, b).sub(h.mul(h).mul(k).mul(0.25));
-});
+const MAX_SPHERES = 6; // keep in sync with CONFIG.spheres (max)
 
-// Helper function for linear interpolation
-const lerp = (start: number, end: number, t: number) => {
-  return start + (end - start) * t;
-};
-
-export const LiquidMercuryBlob = () => {
-  const { width, height } = useThree((state) => state.viewport);
+export const LiquidMercuryBlob = ({
+  stickyProgress,
+}: { stickyProgress?: number } = {}) => {
+  const { viewport, size } = useThree((s) => ({
+    viewport: s.viewport,
+    size: s.size,
+  }));
+  const { width: viewportWidth, height: viewportHeight } = viewport;
   const meshRef = useRef<Mesh>(null);
   const isMobile = useIsMobile();
-  const scroll = useScroll();
+  const globalScrollProgress = useScrollProgress();
 
-  // Track dynamic movement range and blend factor
-  const dynamicMovementRange = useRef(CONFIG.movementRange);
-  const dynamicBlendFactor = useRef(CONFIG.blendFactor);
+  // Calculate values from scatter
+  const scatterValues = getScatterValues(CONFIG.scatter);
 
-  // Use fewer spheres on mobile for better performance
-  const activeSpheres = useMemo(() => {
-    return isMobile ? CONFIG.spheres.slice(0, 3) : CONFIG.spheres;
-  }, [isMobile]);
+  const dynamicMovementRange = useRef(scatterValues.movementRange);
+  const dynamicBlendFactor = useRef(scatterValues.blendFactor);
+
+  const activeCount = isMobile
+    ? 3
+    : Math.min(CONFIG.spheres.length, MAX_SPHERES);
 
   const material = useMemo(() => {
-    const timer = uniform(0);
+    // Pack data into uniforms (fixed length, WebGL-friendly)
+    const radii = new Float32Array(MAX_SPHERES);
+    const speed = new Float32Array(MAX_SPHERES * 3);
+    const phase = new Float32Array(MAX_SPHERES * 3);
 
-    const sdf = Fn(([pos]) => {
-      // Global offset - slow gentle movement for the entire scene
-      const globalOffset = vec3(
-        sin(
-          timer.mul(CONFIG.globalMovement.speed[0] * CONFIG.speedMultiplier)
-        ).mul(CONFIG.globalMovement.range[0]),
-        sin(
-          timer.mul(CONFIG.globalMovement.speed[1] * CONFIG.speedMultiplier)
-        ).mul(CONFIG.globalMovement.range[1]),
-        sin(
-          timer.mul(CONFIG.globalMovement.speed[2] * CONFIG.speedMultiplier)
-        ).mul(CONFIG.globalMovement.range[2])
-      );
+    for (let i = 0; i < MAX_SPHERES; i++) {
+      const s = CONFIG.spheres[i] ?? CONFIG.spheres[0];
+      radii[i] = s.radius;
+      speed[i * 3 + 0] = s.speed[0];
+      speed[i * 3 + 1] = s.speed[1];
+      speed[i * 3 + 2] = s.speed[2];
+      phase[i * 3 + 0] = s.phase[0];
+      phase[i * 3 + 1] = s.phase[1];
+      phase[i * 3 + 2] = s.phase[2];
+    }
 
-      // Generate sphere positions dynamically from activeSpheres
-      const sphereDistances = activeSpheres.map((sphere, i) => {
-        const posOffset = pos.add(
-          vec3(
-            sin(
-              timer
-                .mul(sphere.speed[0] * CONFIG.speedMultiplier)
-                .add(sphere.phase[0])
-            ).mul(CONFIG.movementRange),
-            sin(
-              timer
-                .mul(sphere.speed[1] * CONFIG.speedMultiplier)
-                .add(sphere.phase[1])
-            ).mul(CONFIG.movementRange),
-            sin(
-              timer
-                .mul(sphere.speed[2] * CONFIG.speedMultiplier)
-                .add(sphere.phase[2])
-            ).mul(CONFIG.movementRange * 0.6)
-          ).add(globalOffset)
-        );
-        return sdSphere(posOffset, sphere.radius);
-      });
+    const vertexShader = /* glsl */ `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `;
 
-      // Blend all spheres together
-      let result = sphereDistances[0].toVar();
-      for (let i = 1; i < sphereDistances.length; i++) {
-        result.assign(smin(result, sphereDistances[i], CONFIG.blendFactor));
+    const fragmentShader = /* glsl */ `
+      precision highp float;
+
+      varying vec2 vUv;
+
+      uniform float uTime;
+      uniform vec2  uResolution;     // (pixel width,height) * DPR
+      uniform float uMovementRange;
+      uniform float uBlendFactor;
+      uniform float uSpeedMultiplier;
+      uniform int   uSphereCount;
+
+      uniform float uRadii[${MAX_SPHERES}];
+      uniform float uSpeed[${MAX_SPHERES * 3}];
+      uniform float uPhase[${MAX_SPHERES * 3}];
+
+      uniform vec3 uGlobalSpeed;
+      uniform vec3 uGlobalRange;
+
+      float sdSphere(vec3 p, float r) {
+        return length(p) - r;
       }
 
-      return result;
+      float smin(float a, float b, float k) {
+        float h = max(k - abs(a - b), 0.0) / k;
+        return min(a, b) - h * h * k * 0.25;
+      }
+
+      vec3 globalOffset(float t) {
+        return vec3(
+          sin(t * uGlobalSpeed.x * uSpeedMultiplier) * uGlobalRange.x,
+          sin(t * uGlobalSpeed.y * uSpeedMultiplier) * uGlobalRange.y,
+          sin(t * uGlobalSpeed.z * uSpeedMultiplier) * uGlobalRange.z
+        );
+      }
+
+      float sdf(vec3 pos) {
+        vec3 go = globalOffset(uTime);
+
+        float d = 1e9;
+        // Start with first sphere for stable smin chain
+        for (int i = 0; i < ${MAX_SPHERES}; i++) {
+          if (i >= uSphereCount) break;
+
+          float sx = sin(uTime * uSpeed[i*3+0] * uSpeedMultiplier + uPhase[i*3+0]) * uMovementRange;
+          float sy = sin(uTime * uSpeed[i*3+1] * uSpeedMultiplier + uPhase[i*3+1]) * uMovementRange;
+          float sz = sin(uTime * uSpeed[i*3+2] * uSpeedMultiplier + uPhase[i*3+2]) * (uMovementRange * 0.6);
+
+          vec3 p = pos + vec3(sx, sy, sz) + go;
+          float di = sdSphere(p, uRadii[i]);
+
+          if (i == 0) d = di;
+          else d = smin(d, di, uBlendFactor);
+        }
+        return d;
+      }
+
+      vec3 calcNormal(vec3 p) {
+        // Smaller eps gives sharper highlights - matches TSL version (0.0001)
+        float eps = 0.0001;
+        vec2 h = vec2(eps, 0.0);
+        float dx = sdf(p + vec3(h.x, h.y, h.y)) - sdf(p - vec3(h.x, h.y, h.y));
+        float dy = sdf(p + vec3(h.y, h.x, h.y)) - sdf(p - vec3(h.y, h.x, h.y));
+        float dz = sdf(p + vec3(h.y, h.y, h.x)) - sdf(p - vec3(h.y, h.y, h.x));
+        return normalize(vec3(dx, dy, dz));
+      }
+
+      vec3 lighting(vec3 ro, vec3 p) {
+        vec3 n = calcNormal(p);
+        vec3 v = normalize(ro - p);
+
+        vec3 ambient = vec3(0.2);
+        vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0));
+        vec3 lightColor = vec3(1.0, 1.0, 0.9);
+        float dp = max(0.0, dot(lightDir, n));
+        vec3 diffuse = dp * lightColor;
+
+        vec3 skyColor = vec3(0.0, 0.3, 0.6);
+        vec3 groundColor = vec3(0.6, 0.3, 0.1);
+        float hemiMix = n.y * 0.5 + 0.5;
+        vec3 hemi = mix(groundColor, skyColor, hemiMix);
+
+        vec3 r = reflect(-lightDir, n);
+        float phongValue = pow(max(0.0, dot(v, normalize(r))), 32.0);
+        float fresnel = pow(1.0 - max(0.0, dot(v, n)), 2.0);
+        vec3 specular = vec3(phongValue) * fresnel;
+
+        vec3 lit = ambient * 0.1 + diffuse * 0.5 + hemi * 0.2;
+        vec3 col = vec3(0.1) * lit + specular;
+
+        return col;
+      }
+
+      void main() {
+        // Aspect-corrected uv: [-aspect..aspect] x [-1..1]
+        vec2 uv = (vUv * uResolution) * 2.0 - uResolution;
+        uv /= uResolution.y;
+
+        float cameraDistance = (uSphereCount <= 3) ? -5.0 : -3.0;
+        vec3 ro = vec3(0.0, 0.0, cameraDistance);
+        vec3 rd = normalize(vec3(uv, 1.0));
+
+        float t = 0.0;
+        vec3 p = ro;
+
+        // Raymarch - higher quality for sharper results
+        for (int i = 0; i < 100; i++) {
+          float d = sdf(p);
+          t += d * 0.8;
+          p = ro + rd * t;
+
+          if (d < 0.003) break;  // Lower threshold = sharper
+          if (t > 50.0) break;
+        }
+
+        vec3 col = lighting(ro, p);
+        
+        // Uncharted 2 tone mapping (better than simple ACES for our use case)
+        vec3 x = max(vec3(0.0), col - 0.004);
+        col = (x * (6.2 * x + 0.5)) / (x * (6.2 * x + 1.7) + 0.06);
+        
+        // col is now in sRGB space (Uncharted 2 does this implicitly)
+        
+        gl_FragColor = vec4(col, 1.0);
+      }
+    `;
+
+    const mat = new ShaderMaterial({
+      vertexShader,
+      fragmentShader,
+      uniforms: {
+        uTime: { value: 0 },
+        uResolution: { value: new Vector2(size.width, size.height) }, // Set in useFrame (incl DPR)
+        uMovementRange: { value: scatterValues.movementRange },
+        uBlendFactor: { value: scatterValues.blendFactor },
+        uSpeedMultiplier: { value: CONFIG.speedMultiplier },
+        uSphereCount: { value: activeCount },
+
+        uRadii: { value: radii },
+        uSpeed: { value: speed },
+        uPhase: { value: phase },
+
+        uGlobalSpeed: {
+          value: new Vector3(
+            CONFIG.globalMovement.speed[0],
+            CONFIG.globalMovement.speed[1],
+            CONFIG.globalMovement.speed[2]
+          ),
+        },
+        uGlobalRange: {
+          value: new Vector3(
+            CONFIG.globalMovement.range[0] * scatterValues.globalMovementFactor,
+            CONFIG.globalMovement.range[1] * scatterValues.globalMovementFactor,
+            CONFIG.globalMovement.range[2] * scatterValues.globalMovementFactor
+          ),
+        },
+      },
     });
 
-    const calcNormal = Fn(([p]) => {
-      const eps = float(0.0001);
-      const h = vec2(eps, 0);
-      return normalize(
-        vec3(
-          sdf(p.add(h.xyy)).sub(sdf(p.sub(h.xyy))),
-          sdf(p.add(h.yxy)).sub(sdf(p.sub(h.yxy))),
-          sdf(p.add(h.yyx)).sub(sdf(p.sub(h.yyx)))
-        )
-      );
-    });
+    // We do tone mapping manually in the shader, so disable Three.js's
+    mat.toneMapped = false;
+    mat.dithering = true;
 
-    const lighting = Fn(([ro, r]) => {
-      const normal = calcNormal(r);
-      const viewDir = normalize(ro.sub(r));
-
-      // Step 1: Ambient light
-      const ambient = vec3(0.2);
-
-      // Step 2: Diffuse lighting - gives our shape a 3D look by simulating how light reflects in all directions
-      const lightDir = normalize(vec3(1, 1, 1));
-      const lightColor = vec3(1, 1, 0.9);
-      const dp = max(0, dot(lightDir, normal));
-
-      const diffuse = dp.mul(lightColor);
-
-      // Step 3: Hemisphere light - a mix between a sky and ground colour based on normals
-      const skyColor = vec3(0, 0.3, 0.6);
-      const groundColor = vec3(0.6, 0.3, 0.1);
-
-      const hemiMix = normal.y.mul(0.5).add(0.5);
-      const hemi = mix(groundColor, skyColor, hemiMix);
-
-      // Step 4: Phong specular - Reflective light and highlights
-      const ph = normalize(reflect(lightDir.negate(), normal));
-      const phongValue = max(0, dot(viewDir, ph)).pow(32);
-
-      const specular = vec3(phongValue).toVar();
-
-      // Step 5: Fresnel effect - makes our specular highlight more pronounced at different viewing angles
-      const fresnel = float(1)
-        .sub(max(0, dot(viewDir, normal)))
-        .pow(2);
-
-      specular.mulAssign(fresnel);
-
-      // Lighting is a mix of ambient, hemi, diffuse, then specular added at the end
-      // We're multiplying these all by different values to control their intensity
-
-      // Step 1
-      const lighting = ambient.mul(0.1);
-
-      // Step 2
-      lighting.addAssign(diffuse.mul(0.5));
-
-      // Step 3
-      lighting.addAssign(hemi.mul(0.2));
-
-      const finalColor = vec3(0.1).mul(lighting).toVar();
-
-      // Step 4 & 5
-      finalColor.addAssign(specular);
-
-      return finalColor;
-    });
-
-    const raymarch = Fn(() => {
-      // Use frag coordinates to get an aspect-fixed UV
-      const _uv = uv()
-        .mul(screenSize.xy)
-        .mul(2)
-        .sub(screenSize.xy)
-        .div(screenSize.y);
-
-      // Initialize the ray and its direction - zoom out on mobile for better overview
-      const cameraDistance = isMobile ? -5 : -3;
-      const rayOrigin = vec3(0, 0, cameraDistance);
-      const rayDirection = vec3(_uv, 1).normalize();
-
-      // Total distance travelled - note that toVar is important here so we can assign to this variable
-      const t = float(0).toVar();
-
-      // Calculate the initial position of the ray - this var is declared here so we can use it in lighting calculations later
-      const ray = rayOrigin.add(rayDirection.mul(t)).toVar();
-
-      Loop({ start: 1, end: 80 }, () => {
-        const d = sdf(ray); // current distance to the scene
-
-        t.addAssign(d.mul(0.8)); // slightly reduce the marching step
-
-        ray.assign(rayOrigin.add(rayDirection.mul(t))); // position along the ray
-
-        // If we're close enough, it's a hit, so we can do an early return
-        If(d.lessThan(0.005), () => {
-          // increase threshold
-          Break();
-        });
-
-        // If we've travelled too far, we can return now and consider that this ray didn't hit anything
-        If(t.greaterThan(50), () => {
-          // reduce maximum distance
-          Break();
-        });
-      });
-
-      return lighting(rayOrigin, ray);
-    })();
-
-    const raymarchMaterial = new MeshBasicNodeMaterial();
-    raymarchMaterial.colorNode = raymarch;
-
-    return { material: raymarchMaterial, timer };
-  }, [activeSpheres, isMobile]);
+    return mat;
+  }, [activeCount, isMobile, size.width, size.height]);
 
   useFrame((state) => {
-    const scrollOffset = scroll.offset; // 0 to 1 across all pages
+    // Use CONFIG.scatter values directly instead of scrollOffset
+    const currentScatterValues = getScatterValues(CONFIG.scatter);
 
-    // Dynamically adjust movement range based on scroll position
-    // Hero (0): compact (0.4)
-    // Expertise (0.5): medium spreading (0.95)
-    // Contact (1.0): maximum spread (1.5)
-    const targetMovementRange = lerp(0.4, 1.5, scrollOffset);
-
-    // Smoothly interpolate to target value
+    // Smooth transition to target values from CONFIG
     dynamicMovementRange.current = lerp(
       dynamicMovementRange.current,
-      targetMovementRange,
-      0.05 // Smoothing factor
-    );
-
-    // Dynamically adjust blend factor to make spheres more separate as we scroll
-    // Hero (0): smooth liquid (0.3)
-    // Contact (1.0): more separate (0.15)
-    const targetBlendFactor = lerp(0.3, 0.15, scrollOffset);
-
-    dynamicBlendFactor.current = lerp(
-      dynamicBlendFactor.current,
-      targetBlendFactor,
+      currentScatterValues.movementRange,
       0.05
     );
 
-    // Update CONFIG values that the shader uses
-    CONFIG.movementRange = dynamicMovementRange.current;
-    CONFIG.blendFactor = dynamicBlendFactor.current;
+    dynamicBlendFactor.current = lerp(
+      dynamicBlendFactor.current,
+      currentScatterValues.blendFactor,
+      0.05
+    );
 
-    // Update the timer uniform using the clock
-    material.timer.value = state.clock.getElapsedTime();
+    material.uniforms.uTime.value = state.clock.getElapsedTime();
+    material.uniforms.uMovementRange.value = dynamicMovementRange.current;
+    material.uniforms.uBlendFactor.value = dynamicBlendFactor.current;
+    material.uniforms.uSphereCount.value = activeCount;
+
+    // Update speed multiplier from CONFIG
+    material.uniforms.uSpeedMultiplier.value = CONFIG.speedMultiplier;
+
+    // Update sphere properties from CONFIG (radius, speed, phase)
+    const radiiArray = material.uniforms.uRadii.value as Float32Array;
+    const speedArray = material.uniforms.uSpeed.value as Float32Array;
+    const phaseArray = material.uniforms.uPhase.value as Float32Array;
+
+    for (let i = 0; i < MAX_SPHERES; i++) {
+      const s = CONFIG.spheres[i] ?? CONFIG.spheres[0];
+      radiiArray[i] = s.radius;
+      speedArray[i * 3 + 0] = s.speed[0];
+      speedArray[i * 3 + 1] = s.speed[1];
+      speedArray[i * 3 + 2] = s.speed[2];
+      phaseArray[i * 3 + 0] = s.phase[0];
+      phaseArray[i * 3 + 1] = s.phase[1];
+      phaseArray[i * 3 + 2] = s.phase[2];
+    }
+
+    // Update global movement from CONFIG
+    const globalSpeed = material.uniforms.uGlobalSpeed.value as Vector3;
+    const globalRange = material.uniforms.uGlobalRange.value as Vector3;
+
+    globalSpeed.set(
+      CONFIG.globalMovement.speed[0],
+      CONFIG.globalMovement.speed[1],
+      CONFIG.globalMovement.speed[2]
+    );
+    globalRange.set(
+      CONFIG.globalMovement.range[0] *
+        currentScatterValues.globalMovementFactor,
+      CONFIG.globalMovement.range[1] *
+        currentScatterValues.globalMovementFactor,
+      CONFIG.globalMovement.range[2] * currentScatterValues.globalMovementFactor
+    );
+
+    // size is in CSS pixels, and we must multiply with DPR to match TSL's `screenSize`
+    const dpr = state.gl.getPixelRatio();
+    const pxW = state.size.width * dpr;
+    const pxH = state.size.height * dpr;
+    (material.uniforms.uResolution.value as Vector2).set(pxW, pxH);
   });
 
   return (
-    <mesh ref={meshRef} scale={[width, height, 1]}>
+    <mesh
+      ref={meshRef}
+      scale={[viewportWidth, viewportHeight, 1]}
+      material={material}
+    >
       <planeGeometry args={[1, 1]} />
-      <primitive object={material.material} attach="material" />
     </mesh>
   );
 };

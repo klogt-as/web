@@ -1,12 +1,16 @@
 import { useRef, useState } from "react";
-import WebGPUCanvas from "./Canvas/Canvas";
-import { LiquidMercuryBlob } from "./LiquidMercuryBlob";
 import LoadingOverlay from "./LoadingOverlay";
 import { useIsMobile } from "../hooks/useIsMobile";
-import { ScrollControls, Scroll } from "@react-three/drei";
+import { GlobalCanvas, SmoothScrollbar } from "@14islands/r3f-scroll-rig";
 import { ScrollAnimatedSection } from "./ScrollAnimatedSection";
-import { ScrollStorytellingProvider } from "./ScrollStorytellingContext";
 import { ScrollIndicator } from "./ScrollIndicator";
+import { StickyBlobScene } from "./StickyBlobScene";
+import { LiquidMercuryBlob } from "./LiquidMercuryBlob";
+import { Canvas } from "@react-three/fiber";
+import { AdaptiveDpr } from "@react-three/drei";
+import WebGPUCapabilities from "three/examples/jsm/capabilities/WebGPU.js";
+import { WebGPURenderer } from "three/webgpu";
+import { ACESFilmicToneMapping, SRGBColorSpace } from "three";
 
 // Section content data
 const sections = [
@@ -24,6 +28,13 @@ const sections = [
     text: "Vi vet at kreativitet starter uorganisert. Med riktig teknologi og erfaring former vi dine visjoner til digitale opplevelser som engasjerer, virker og vokser. Din ide fortjener mer enn å forbli et konsept.",
     accent: "#4d9bff",
   },
+  {
+    id: "experience",
+    label: "Erfaring",
+    title: "Erfaring som skaper resultater",
+    text: "Med flere års erfaring i bransjen har vi levert løsninger som overgår forventninger. Vi kombinerer teknisk ekspertise med forståelse for brukerens behov.",
+    accent: "#6b46c1",
+  },
 ];
 
 // Main LandingPage Component
@@ -31,92 +42,142 @@ export default function LandingPage() {
   const isMobile = useIsMobile();
   const [isLoadingComplete, setIsLoadingComplete] = useState(false);
   const totalSections = sections.length + 1; // sections + contact section
+  const containerRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div style={styles.root}>
+    <>
+      {/* Loading overlay */}
       <LoadingOverlay onSlideStart={() => setIsLoadingComplete(true)} />
 
-      {/* WebGPU Canvas with ScrollControls */}
-      <WebGPUCanvas style={styles.canvas}>
-        <ScrollControls pages={totalSections} damping={0.2}>
-          <ScrollStorytellingProvider totalSections={totalSections}>
-            {/* 3D Scene - synced with scroll */}
-            <Scroll>
-              <LiquidMercuryBlob />
-            </Scroll>
+      {/* Lenis smooth scrollbar wrapper - disabled on mobile for better performance */}
+      {!isMobile ? (
+        <SmoothScrollbar>
+          {() => (
+            <div ref={containerRef} style={styles.root}>
+              <ContentWithCanvas
+                isMobile={isMobile}
+                totalSections={totalSections}
+              />
+            </div>
+          )}
+        </SmoothScrollbar>
+      ) : (
+        <div ref={containerRef} style={styles.root}>
+          <ContentWithCanvas
+            isMobile={isMobile}
+            totalSections={totalSections}
+          />
+        </div>
+      )}
+    </>
+  );
+}
 
-            {/* HTML Content - scroll-animated sections */}
-            <Scroll html>
-              {/* Scroll Indicator - fades out on scroll */}
-              <ScrollIndicator />
+// Separate component for canvas and content to reduce duplication
+function ContentWithCanvas({
+  isMobile,
+  totalSections,
+}: {
+  isMobile: boolean;
+  totalSections: number;
+}) {
+  return (
+    <>
+      {/* WebGPU Canvas for blob rendering */}
+      <Canvas
+        style={styles.canvas}
+        gl={async (canvas: any) => {
+          const webGPUAvailable = WebGPUCapabilities.isAvailable();
+          const renderer = new WebGPURenderer({
+            canvas: canvas.canvas as HTMLCanvasElement,
+            antialias: !isMobile,
+            alpha: true,
+            forceWebGL: !webGPUAvailable,
+          });
+          renderer.toneMapping = ACESFilmicToneMapping;
+          renderer.outputColorSpace = SRGBColorSpace;
 
-              <div style={styles.scrollWrapper}>
-                {sections.map((section, index) => (
-                  <ScrollAnimatedSection
-                    key={section.id}
-                    index={index}
-                    totalSections={totalSections}
-                    style={styles.section(isMobile, section.accent)}
-                  >
-                    <div style={styles.content(isMobile)}>
-                      <div style={styles.textContent}>
-                        {/* Chip Row */}
-                        <div style={styles.chipRow}>
-                          <span style={styles.chip(section.id)}>
-                            {section.label}
-                          </span>
-                          <span style={styles.chipIndex}>
-                            {String(index + 1).padStart(2, "0")}
-                          </span>
-                        </div>
+          const pixelRatio = isMobile
+            ? Math.min(window.devicePixelRatio, 1.5)
+            : Math.min(window.devicePixelRatio, 2);
+          renderer.setPixelRatio(pixelRatio);
 
-                        {/* Title */}
-                        <h1 style={styles.title(isMobile)}>{section.title}</h1>
+          await renderer.init();
+          return renderer;
+        }}
+        dpr={isMobile ? [1, 1.5] : [1, 2]}
+      >
+        <AdaptiveDpr pixelated={isMobile} />
+        <LiquidMercuryBlob />
+      </Canvas>
 
-                        {/* Text */}
-                        <p style={styles.text(isMobile)}>{section.text}</p>
+      {/* GlobalCanvas for r3f-scroll-rig (scroll tracking only) */}
+      <GlobalCanvas style={styles.canvas} dpr={isMobile ? [1, 1.5] : [1, 2]}>
+        {/* Empty - only used for scroll tracking */}
+      </GlobalCanvas>
 
-                        {/* Button */}
-                        <button type="button" style={styles.button}>
-                          Se detaljer
-                          <span style={{ fontSize: 16, marginLeft: 8 }}>→</span>
-                        </button>
-                      </div>
-                    </div>
-                  </ScrollAnimatedSection>
-                ))}
+      {/* Scroll Indicator - fades out on scroll */}
+      <ScrollIndicator />
 
-                {/* Contact Section */}
-                <ScrollAnimatedSection
-                  index={sections.length}
-                  totalSections={totalSections}
-                  style={styles.contactSection(isMobile)}
-                >
-                  <div style={styles.contactContent(isMobile)}>
-                    <h2 style={styles.contactTitle(isMobile)}>
-                      Klar til å realisere din visjon?
-                    </h2>
-                    {/* <a
-                      href="mailto:markus.remmen@klogt.no"
-                      style={styles.contactEmail(isMobile)}
-                    >
-                      markus.remmen@klogt.no
-                    </a> */}
-                    <a
-                      href="mailto:markus.remmen@klogt.no"
-                      style={styles.contactButton(isMobile)}
-                    >
-                      Kontakt oss
-                      <span style={{ fontSize: 16, marginLeft: 8 }}>→</span>
-                    </a>
-                  </div>
-                </ScrollAnimatedSection>
+      <div style={styles.scrollWrapper}>
+        {/* Sticky Blob Scene - Hero Section */}
+        <StickyBlobScene />
+
+        {/* Regular sections after sticky section */}
+        {sections.slice(1).map((section, index) => (
+          <ScrollAnimatedSection
+            key={section.id}
+            index={index + 1}
+            totalSections={totalSections}
+            style={styles.section(isMobile, section.accent)}
+          >
+            <div style={styles.content(isMobile)}>
+              <div style={styles.textContent}>
+                {/* Chip Row */}
+                <div style={styles.chipRow}>
+                  <span style={styles.chip(section.id)}>{section.label}</span>
+                  <span style={styles.chipIndex}>
+                    {String(index + 2).padStart(2, "0")}
+                  </span>
+                </div>
+
+                {/* Title */}
+                <h1 style={styles.title(isMobile)}>{section.title}</h1>
+
+                {/* Text */}
+                <p style={styles.text(isMobile)}>{section.text}</p>
+
+                {/* Button */}
+                <button type="button" style={styles.button}>
+                  Se detaljer
+                  <span style={{ fontSize: 16, marginLeft: 8 }}>→</span>
+                </button>
               </div>
-            </Scroll>
-          </ScrollStorytellingProvider>
-        </ScrollControls>
-      </WebGPUCanvas>
-    </div>
+            </div>
+          </ScrollAnimatedSection>
+        ))}
+
+        {/* Contact Section */}
+        <ScrollAnimatedSection
+          index={sections.length}
+          totalSections={totalSections}
+          style={styles.contactSection(isMobile)}
+        >
+          <div style={styles.contactContent(isMobile)}>
+            <h2 style={styles.contactTitle(isMobile)}>
+              Klar til å realisere din visjon?
+            </h2>
+            <a
+              href="mailto:markus.remmen@klogt.no"
+              style={styles.contactButton(isMobile)}
+            >
+              Kontakt oss
+              <span style={{ fontSize: 16, marginLeft: 8 }}>→</span>
+            </a>
+          </div>
+        </ScrollAnimatedSection>
+      </div>
+    </>
   );
 }
 
@@ -127,6 +188,8 @@ const getPastelChipColor = (sectionId: string): string => {
       return "rgba(255, 224, 224, 0.45)";
     case "expertise":
       return "rgba(224, 235, 255, 0.45)";
+    case "experience":
+      return "rgba(235, 224, 255, 0.45)";
     default:
       return "rgba(255, 224, 224, 0.45)";
   }
@@ -136,16 +199,21 @@ const getPastelChipColor = (sectionId: string): string => {
 const styles: Record<string, any> = {
   root: {
     position: "relative" as const,
-    width: "100vw",
-    height: "100vh",
-    overflow: "hidden",
+    width: "100%",
+  },
+  canvasContainer: {
+    position: "fixed",
+    margin: "200px",
   },
   canvas: {
     position: "fixed" as const,
     inset: 0,
     zIndex: 0,
+    pointerEvents: "none" as const,
   },
   scrollWrapper: {
+    position: "relative" as const,
+    zIndex: 1,
     width: "100vw",
   },
   section: (isMobile: boolean, accent: string) => ({
@@ -227,7 +295,6 @@ const styles: Record<string, any> = {
     alignItems: "center",
     boxShadow:
       "0 8px 32px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.3)",
-    // Only transition hover effects, not transform/opacity (Motion handles those)
     transition:
       "background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease",
     fontSize: 14,
@@ -293,7 +360,6 @@ const styles: Record<string, any> = {
     alignItems: "center",
     boxShadow:
       "0 8px 32px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.3)",
-    // Only transition hover effects, not transform/opacity (Motion handles those)
     transition:
       "background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease",
     fontSize: isMobile ? 14 : 16,

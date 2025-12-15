@@ -43,12 +43,19 @@
   font-display: swap;
 }
 
+html,
 body {
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
+}
+
+html {
+  overflow-y: auto;
+}
+
+body {
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

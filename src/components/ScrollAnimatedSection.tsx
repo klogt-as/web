@@ -1,6 +1,5 @@
 import { useRef, useEffect } from "react";
-import { useScroll } from "@react-three/drei";
-import { useFrame } from "@react-three/fiber";
+import { useScrollProgress } from "../hooks/useScrollProgress";
 import type { ReactNode } from "react";
 
 interface ScrollAnimatedSectionProps {
@@ -17,12 +16,11 @@ export function ScrollAnimatedSection({
   style = {},
 }: ScrollAnimatedSectionProps) {
   const ref = useRef<HTMLElement>(null);
-  const scroll = useScroll();
+  const scrollOffset = useScrollProgress();
 
-  useFrame(() => {
+  useEffect(() => {
     if (!ref.current) return;
 
-    const scrollOffset = scroll.offset;
     const isFirstSection = index === 0;
     const isLastSection = index === totalSections - 1;
 
@@ -58,7 +56,7 @@ export function ScrollAnimatedSection({
 
     // Apply opacity smoothly
     ref.current.style.opacity = opacity.toString();
-  });
+  }, [index, totalSections, scrollOffset]);
 
   return (
     <section ref={ref} style={{ ...style, opacity: 0 }}>

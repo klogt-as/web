@@ -1,6 +1,6 @@
 ---
 import BaseHead from '../components/BaseHead.astro';
-import LandingPage from '../components/LandingPage';
+import LandingPageVol2 from '../components/LandingPageVol2';
 import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
 ---
 
@@ -8,26 +8,10 @@ import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
 <html lang="en">
 	<head>
 		<BaseHead title={`${SITE_TITLE} - home`} description={SITE_DESCRIPTION} />
-		<style>
-			html, body {
-				margin: 0;
-				padding: 0;
-				width: 100%;
-				height: 100%;
-				overflow: hidden;
-			}
-			
-			#landing-root {
-				position: fixed;
-				inset: 0;
-				width: 100vw;
-				height: 100vh;
-			}
-		</style>
 	</head>
 	<body>
 		<div id="landing-root">
-			<LandingPage client:only="react" />
+			<LandingPageVol2 client:only="react" />
 		</div>
 	</body>
 </html>
