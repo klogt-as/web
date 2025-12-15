@@ -1,9 +1,12 @@
-import { motion, useInView } from "motion/react";
 import { useRef, useState } from "react";
 import WebGPUCanvas from "./Canvas/Canvas";
 import { LiquidMercuryBlob } from "./LiquidMercuryBlob";
 import LoadingOverlay from "./LoadingOverlay";
 import { useIsMobile } from "../hooks/useIsMobile";
+import { ScrollControls, Scroll } from "@react-three/drei";
+import { ScrollAnimatedSection } from "./ScrollAnimatedSection";
+import { ScrollStorytellingProvider } from "./ScrollStorytellingContext";
+import { ScrollIndicator } from "./ScrollIndicator";
 
 // Section content data
 const sections = [
@@ -23,205 +26,96 @@ const sections = [
   },
 ];
 
-// Animated Section Component
-function AnimatedSection({
-  section,
-  index,
-  isMobile,
-  isLoadingComplete,
-}: {
-  section: (typeof sections)[0];
-  index: number;
-  isMobile: boolean;
-  isLoadingComplete: boolean;
-}) {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, amount: 0.3 });
-
-  // Only animate when both in view AND loading is complete
-  const shouldAnimate = isInView && isLoadingComplete;
-
-  return (
-    <section ref={ref} style={styles.section(isMobile, section.accent)}>
-      {/* Animated gradient blob background */}
-      {/* <div className="blob-container">
-        <div
-          className="blob blob-1"
-          style={{
-            background: `radial-gradient(circle, ${section.accent} 0%, transparent 70%)`,
-          }}
-        />
-        <div
-          className="blob blob-2"
-          style={{
-            background: `radial-gradient(circle, ${section.accent}88 0%, transparent 70%)`,
-          }}
-        />
-        <div
-          className="blob blob-3"
-          style={{
-            background: `radial-gradient(circle, ${section.accent}66 0%, transparent 70%)`,
-          }}
-        />
-      </div> */}
-
-      {/* Content wrapper */}
-      <div style={styles.content(isMobile)}>
-        <div style={styles.textContent}>
-          {/* Chip Row - slides in first */}
-          <motion.div
-            style={styles.chipRow}
-            initial={{ y: 40, opacity: 0 }}
-            animate={
-              shouldAnimate ? { y: 0, opacity: 1 } : { y: 40, opacity: 0 }
-            }
-            transition={{ duration: 0.8, ease: "easeOut", delay: 0 }}
-          >
-            <span style={styles.chip(section.id)}>{section.label}</span>
-            <span style={styles.chipIndex}>
-              {String(index + 1).padStart(2, "0")}
-            </span>
-          </motion.div>
-
-          {/* Title - slides in second */}
-          <motion.h1
-            style={styles.title(isMobile)}
-            initial={{ y: 40, opacity: 0 }}
-            animate={
-              shouldAnimate ? { y: 0, opacity: 1 } : { y: 40, opacity: 0 }
-            }
-            transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
-          >
-            {section.title}
-          </motion.h1>
-
-          {/* Text - slides in third */}
-          <motion.p
-            style={styles.text(isMobile)}
-            initial={{ y: 40, opacity: 0 }}
-            animate={
-              shouldAnimate ? { y: 0, opacity: 1 } : { y: 40, opacity: 0 }
-            }
-            transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
-          >
-            {section.text}
-          </motion.p>
-
-          {/* Button - slides in last */}
-          <motion.button
-            type="button"
-            style={styles.button}
-            initial={{ y: 40, opacity: 0 }}
-            animate={
-              shouldAnimate ? { y: 0, opacity: 1 } : { y: 40, opacity: 0 }
-            }
-            transition={{ duration: 0.8, ease: "easeOut", delay: 0.25 }}
-          >
-            Se detaljer
-            <span style={{ fontSize: 16, marginLeft: 8 }}>→</span>
-          </motion.button>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// Contact Section Component
-function ContactSection({
-  isMobile,
-  isLoadingComplete,
-}: {
-  isMobile: boolean;
-  isLoadingComplete: boolean;
-}) {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, amount: 0.3 });
-
-  // Only animate when both in view AND loading is complete
-  const shouldAnimate = isInView && isLoadingComplete;
-
-  return (
-    <section ref={ref} style={styles.contactSection(isMobile)}>
-      <div style={styles.contactContent(isMobile)}>
-        {/* Large Title */}
-        <motion.h1
-          style={styles.contactTitle(isMobile)}
-          initial={{ y: 40, opacity: 0 }}
-          animate={shouldAnimate ? { y: 0, opacity: 1 } : { y: 40, opacity: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut", delay: 0 }}
-        >
-          Klar til å realisere din visjon?
-        </motion.h1>
-
-        {/* Subtitle */}
-        <motion.p
-          style={styles.contactSubtitle(isMobile)}
-          initial={{ y: 40, opacity: 0 }}
-          animate={shouldAnimate ? { y: 0, opacity: 1 } : { y: 40, opacity: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
-        >
-          La oss starte en samtale
-        </motion.p>
-
-        {/* Email */}
-        <motion.a
-          href="mailto:post@klogt.no"
-          style={styles.contactEmail(isMobile)}
-          initial={{ y: 40, opacity: 0 }}
-          animate={shouldAnimate ? { y: 0, opacity: 1 } : { y: 40, opacity: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
-        >
-          post@klogt.no
-        </motion.a>
-
-        {/* CTA Button */}
-        <motion.a
-          href="mailto:post@klogt.no"
-          style={styles.contactButton(isMobile)}
-          initial={{ y: 40, opacity: 0 }}
-          animate={shouldAnimate ? { y: 0, opacity: 1 } : { y: 40, opacity: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
-        >
-          Kontakt oss
-          <span style={{ fontSize: 16, marginLeft: 8 }}>→</span>
-        </motion.a>
-      </div>
-    </section>
-  );
-}
-
 // Main LandingPage Component
 export default function LandingPage() {
   const isMobile = useIsMobile();
   const [isLoadingComplete, setIsLoadingComplete] = useState(false);
+  const totalSections = sections.length + 1; // sections + contact section
 
   return (
     <div style={styles.root}>
       <LoadingOverlay onSlideStart={() => setIsLoadingComplete(true)} />
 
-      {/* Fixed WebGPU Canvas Background */}
-      <div style={styles.canvasWrapper}>
-        <WebGPUCanvas style={{ width: "100%", height: "100%" }}>
-          <LiquidMercuryBlob />
-        </WebGPUCanvas>
-      </div>
+      {/* WebGPU Canvas with ScrollControls */}
+      <WebGPUCanvas style={styles.canvas}>
+        <ScrollControls pages={totalSections} damping={0.2}>
+          <ScrollStorytellingProvider totalSections={totalSections}>
+            {/* 3D Scene - synced with scroll */}
+            <Scroll>
+              <LiquidMercuryBlob />
+            </Scroll>
 
-      {/* Scrollable HTML Content Overlay */}
-      <div style={styles.scrollContainer}>
-        {sections.map((section, index) => (
-          <AnimatedSection
-            key={section.id}
-            section={section}
-            index={index}
-            isMobile={isMobile}
-            isLoadingComplete={isLoadingComplete}
-          />
-        ))}
-        <ContactSection
-          isMobile={isMobile}
-          isLoadingComplete={isLoadingComplete}
-        />
-      </div>
+            {/* HTML Content - scroll-animated sections */}
+            <Scroll html>
+              {/* Scroll Indicator - fades out on scroll */}
+              <ScrollIndicator />
+
+              <div style={styles.scrollWrapper}>
+                {sections.map((section, index) => (
+                  <ScrollAnimatedSection
+                    key={section.id}
+                    index={index}
+                    totalSections={totalSections}
+                    style={styles.section(isMobile, section.accent)}
+                  >
+                    <div style={styles.content(isMobile)}>
+                      <div style={styles.textContent}>
+                        {/* Chip Row */}
+                        <div style={styles.chipRow}>
+                          <span style={styles.chip(section.id)}>
+                            {section.label}
+                          </span>
+                          <span style={styles.chipIndex}>
+                            {String(index + 1).padStart(2, "0")}
+                          </span>
+                        </div>
+
+                        {/* Title */}
+                        <h1 style={styles.title(isMobile)}>{section.title}</h1>
+
+                        {/* Text */}
+                        <p style={styles.text(isMobile)}>{section.text}</p>
+
+                        {/* Button */}
+                        <button type="button" style={styles.button}>
+                          Se detaljer
+                          <span style={{ fontSize: 16, marginLeft: 8 }}>→</span>
+                        </button>
+                      </div>
+                    </div>
+                  </ScrollAnimatedSection>
+                ))}
+
+                {/* Contact Section */}
+                <ScrollAnimatedSection
+                  index={sections.length}
+                  totalSections={totalSections}
+                  style={styles.contactSection(isMobile)}
+                >
+                  <div style={styles.contactContent(isMobile)}>
+                    <h2 style={styles.contactTitle(isMobile)}>
+                      Klar til å realisere din visjon?
+                    </h2>
+                    {/* <a
+                      href="mailto:markus.remmen@klogt.no"
+                      style={styles.contactEmail(isMobile)}
+                    >
+                      markus.remmen@klogt.no
+                    </a> */}
+                    <a
+                      href="mailto:markus.remmen@klogt.no"
+                      style={styles.contactButton(isMobile)}
+                    >
+                      Kontakt oss
+                      <span style={{ fontSize: 16, marginLeft: 8 }}>→</span>
+                    </a>
+                  </div>
+                </ScrollAnimatedSection>
+              </div>
+            </Scroll>
+          </ScrollStorytellingProvider>
+        </ScrollControls>
+      </WebGPUCanvas>
     </div>
   );
 }
@@ -243,21 +137,16 @@ const styles: Record<string, any> = {
   root: {
     position: "relative" as const,
     width: "100vw",
-    minHeight: "100vh",
+    height: "100vh",
     overflow: "hidden",
   },
-  canvasWrapper: {
+  canvas: {
     position: "fixed" as const,
     inset: 0,
     zIndex: 0,
   },
-  scrollContainer: {
-    position: "relative" as const,
-    zIndex: 1,
-    width: "100%",
-    height: "auto",
-    overflowY: "auto" as const,
-    overflowX: "hidden" as const,
+  scrollWrapper: {
+    width: "100vw",
   },
   section: (isMobile: boolean, accent: string) => ({
     minHeight: "100vh",

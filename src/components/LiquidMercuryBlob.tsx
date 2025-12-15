@@ -2,6 +2,7 @@
 import { useThree, useFrame } from "@react-three/fiber";
 import { useRef, useMemo } from "react";
 import { useIsMobile } from "../hooks/useIsMobile";
+import { useScroll } from "@react-three/drei";
 import {
   float,
   Loop,
@@ -77,10 +78,20 @@ const smin = Fn(([a, b, k]) => {
   return min(a, b).sub(h.mul(h).mul(k).mul(0.25));
 });
 
+// Helper function for linear interpolation
+const lerp = (start: number, end: number, t: number) => {
+  return start + (end - start) * t;
+};
+
 export const LiquidMercuryBlob = () => {
   const { width, height } = useThree((state) => state.viewport);
   const meshRef = useRef<Mesh>(null);
   const isMobile = useIsMobile();
+  const scroll = useScroll();
+
+  // Track dynamic movement range and blend factor
+  const dynamicMovementRange = useRef(CONFIG.movementRange);
+  const dynamicBlendFactor = useRef(CONFIG.blendFactor);
 
   // Use fewer spheres on mobile for better performance
   const activeSpheres = useMemo(() => {
@@ -252,6 +263,36 @@ export const LiquidMercuryBlob = () => {
   }, [activeSpheres, isMobile]);
 
   useFrame((state) => {
+    const scrollOffset = scroll.offset; // 0 to 1 across all pages
+
+    // Dynamically adjust movement range based on scroll position
+    // Hero (0): compact (0.4)
+    // Expertise (0.5): medium spreading (0.95)
+    // Contact (1.0): maximum spread (1.5)
+    const targetMovementRange = lerp(0.4, 1.5, scrollOffset);
+
+    // Smoothly interpolate to target value
+    dynamicMovementRange.current = lerp(
+      dynamicMovementRange.current,
+      targetMovementRange,
+      0.05 // Smoothing factor
+    );
+
+    // Dynamically adjust blend factor to make spheres more separate as we scroll
+    // Hero (0): smooth liquid (0.3)
+    // Contact (1.0): more separate (0.15)
+    const targetBlendFactor = lerp(0.3, 0.15, scrollOffset);
+
+    dynamicBlendFactor.current = lerp(
+      dynamicBlendFactor.current,
+      targetBlendFactor,
+      0.05
+    );
+
+    // Update CONFIG values that the shader uses
+    CONFIG.movementRange = dynamicMovementRange.current;
+    CONFIG.blendFactor = dynamicBlendFactor.current;
+
     // Update the timer uniform using the clock
     material.timer.value = state.clock.getElapsedTime();
   });
