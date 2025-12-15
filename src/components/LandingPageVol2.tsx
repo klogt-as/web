@@ -2,19 +2,17 @@ import {
   GlobalCanvas,
   SmoothScrollbar,
   UseCanvas,
-  useTracker,
 } from "@14islands/r3f-scroll-rig";
 import { StickyScrollScene } from "@14islands/r3f-scroll-rig/powerups";
 import { useFrame } from "@react-three/fiber";
 import { Suspense, useEffect, useRef, useState } from "react";
-import { LiquidMercuryBlob } from "./LiquidMercuryBlob";
-import { useIsMobile } from "../hooks/useIsMobile";
-
-import "./LandingPageVol2.styles.css";
 import type { JSX } from "react/jsx-runtime";
-import LiquidButton from "./LiquidButton";
+import { useIsMobile } from "../hooks/useIsMobile";
 import { AnimatedHeroSection } from "./AnimatedHeroSection";
+import LiquidButton from "./LiquidButton";
+import { LiquidMercuryBlob } from "./LiquidMercuryBlob";
 import LoadingOverlay from "./LoadingOverlay";
+import Logo from "./Logo";
 
 interface HeroSectionData {
   id: string;
@@ -32,7 +30,7 @@ interface HeroSectionProps {
 function HeroSection({ data, index }: HeroSectionProps) {
   const isMobile = useIsMobile();
 
-  const styles = {
+  const styles: Record<string, React.CSSProperties | any> = {
     heroSection: {
       zIndex: 1000,
     },
@@ -64,28 +62,21 @@ function HeroSection({ data, index }: HeroSectionProps) {
       borderRadius: 999,
       border: "1px solid rgba(255,255,255,0.16)",
       background: "rgba(0, 0, 0, 0.2)",
-      color: "#fdfeec",
     },
     chipIndex: {
       fontSize: 12,
-      opacity: 0.6,
-      color: "#fdfeec",
+      color: "var(--font-color-subtile)",
     },
     title: (isMobile: boolean) => ({
-      fontSize: isMobile
-        ? "clamp(2rem, 8vw, 2.8rem)"
-        : "clamp(2.4rem, 4vw, 3.8rem)",
       lineHeight: 1.1,
-      marginBottom: 16,
-      color: "#fdfeec",
+      marginTop: "1rem",
+      marginBottom: "1rem",
       fontWeight: 600,
     }),
     text: (isMobile: boolean) => ({
-      fontSize: isMobile ? 15 : 17,
       opacity: 0.85,
       lineHeight: 1.7,
       marginBottom: 24,
-      color: "#fdfeec",
     }),
   };
 
@@ -102,7 +93,7 @@ function HeroSection({ data, index }: HeroSectionProps) {
           </div>
 
           {/* Title */}
-          <h1 style={styles.title(isMobile)}>{data.title}</h1>
+          <h2 style={styles.title(isMobile)}>{data.title}</h2>
 
           {/* Text */}
           <p style={styles.text(isMobile)}>{data.text}</p>
@@ -157,8 +148,11 @@ function StickySection() {
 
   return (
     <section>
-      <div className="StickyContainer" style={{ height: "500vh" }}>
-        <div ref={el} className="SomeStickyContent Debug">
+      <div className="stickyContainer" style={{ height: "500vh" }}>
+        <div ref={el} className="stickyContent">
+          <header>
+            <Logo />
+          </header>
           <AnimatedHeroSection
             scrollProgress={scrollProgress}
             visibleFrom={0}
@@ -202,19 +196,19 @@ function StickySection() {
 function ContactSection() {
   const isMobile = useIsMobile();
 
-  const styles = {
+  const styles: Record<string, React.CSSProperties | any> = {
     contactSection: (isMobile: boolean) => ({
       minHeight: "100vh",
       position: "relative" as const,
       display: "flex",
+      flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
       background: "#050608",
-      padding: isMobile ? "4rem 6vw" : "6rem 8vw",
       zIndex: 1000,
     }),
     contactContent: (isMobile: boolean) => ({
-      maxWidth: isMobile ? "100%" : 800,
+      maxWidth: isMobile ? "100%" : 720,
       width: "100%",
       textAlign: "center" as const,
       display: "flex",
@@ -223,20 +217,15 @@ function ContactSection() {
       gap: isMobile ? 24 : 32,
     }),
     contactTitle: (isMobile: boolean) => ({
-      fontSize: isMobile ? "clamp(2rem, 8vw, 3rem)" : "clamp(3rem, 6vw, 5rem)",
       lineHeight: 1.1,
-      color: "#fdfeec",
       fontWeight: 600,
       margin: 0,
     }),
     contactSubtitle: (isMobile: boolean) => ({
-      fontSize: isMobile ? 18 : 22,
-      color: "rgba(253, 254, 236, 0.7)",
       lineHeight: 1.5,
       margin: 0,
     }),
     contactEmail: (isMobile: boolean) => ({
-      fontSize: isMobile ? 20 : 28,
       color: "#4d9bff",
       textDecoration: "none",
       fontWeight: 500,
@@ -255,7 +244,6 @@ function ContactSection() {
         "linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05))",
       backdropFilter: "blur(20px) saturate(180%)",
       WebkitBackdropFilter: "blur(20px) saturate(180%)",
-      color: "#fdfeec",
       fontWeight: 500,
       cursor: "pointer",
       display: "inline-flex",
@@ -269,7 +257,17 @@ function ContactSection() {
       letterSpacing: 1.5,
       textDecoration: "none",
     }),
+    contactFooter: {
+      position: "absolute" as const,
+      bottom: "1rem",
+      textTransform: "uppercase",
+      fontSize: "12px",
+      color: "var(--font-color-subtile)",
+    },
   };
+
+  const today = new Date();
+
   return (
     <section style={styles.contactSection(isMobile)}>
       <div style={styles.contactContent(isMobile)}>
@@ -285,6 +283,9 @@ function ContactSection() {
       </a> */}
         <LiquidButton label="Kontakt oss" />
       </div>
+      <footer style={styles.contactFooter}>
+        &copy; {today.getFullYear()} Klogt AS
+      </footer>
     </section>
   );
 }
@@ -316,10 +317,10 @@ export default function LandingPageVol2({}: Props) {
       </GlobalCanvas>
       <SmoothScrollbar>
         {(bind) => (
-          <article {...bind}>
+          <main {...bind}>
             <StickySection />
             <ContactSection />
-          </article>
+          </main>
         )}
       </SmoothScrollbar>
     </>

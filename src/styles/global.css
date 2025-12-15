@@ -1,26 +1,20 @@
+:root {
+  font-size: 20px;
+
+  --primary-color: #1f3a48;
+  --secondary-color: #fffcef;
+
+  --font-color: var(--secondary-color);
+  --font-color-subtile: #fffcef99;
+
+  --pad-y: 0;
+  --pad-x: clamp(6vw, 7vw, 8vw);
+}
+
 *,
 *::after,
 *::before {
   box-sizing: border-box;
-}
-
-:root {
-  font-size: 20px;
-
-  --accent: #2337ff;
-  --accent-dark: #000d8a;
-  --black: 15, 18, 25;
-  --gray: 96, 115, 159;
-  --gray-light: 229, 233, 240;
-  --gray-dark: 34, 41, 57;
-  --gray-gradient: rgba(var(--gray-light), 50%), #fff;
-  --box-shadow: 0 2px 6px rgba(var(--gray), 25%),
-    0 8px 24px rgba(var(--gray), 33%), 0 16px 32px rgba(var(--gray), 33%);
-  --primary-color: #1f3a48;
-  --secondary-color: #fffcef;
-  --font-color: var(--primary-color);
-  --padding-content: clamp(1.5rem, 5vw, 3rem);
-  --max-content-width: 920px;
 }
 
 ::selection {
@@ -43,277 +37,70 @@
   font-display: swap;
 }
 
-html,
-body {
-  margin: 0;
-  padding: 0;
-  overflow-x: hidden;
-}
-
 html {
-  overflow-y: auto;
-}
-
-body {
-  min-height: 100vh;
+  background: #000;
+  color: var(--font-color);
+  font-family: "Atkinson", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+html,
 body {
-  font-family: "Atkinson", sans-serif;
-  text-align: left;
-  background: var(--secondary-color);
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  color: var(--font-color);
-  line-height: 1.7;
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+section {
+  padding: var(--pad-y) var(--pad-x);
 }
 
 h1,
-h2,
-h3,
-h4 {
-  margin: 0 0 0.5rem 0;
-  line-height: 1.2;
-}
-h1 {
-  font-size: 2.5rem;
-}
 h2 {
-  font-size: 2rem;
+  font-size: clamp(2rem, 5vw, 3.8rem);
 }
 h3 {
-  font-size: 1.5rem;
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
 }
 h4 {
-  font-size: 1.25rem;
+  font-size: clamp(1.25rem, 2vw, 1.8rem);
+}
+h5 {
+  font-size: clamp(1.1rem, 1.5vw, 1.4rem);
 }
 
-strong,
-b {
-  font-weight: 700;
-}
-a {
-  color: var(--primary-color);
-}
-a:hover {
-  color: var(--primary-color);
-}
-p {
-  margin-bottom: 1em;
-}
-.prose p {
-  margin-bottom: 2em;
-}
-textarea {
-  width: 100%;
-  font-size: 16px;
-}
-input {
-  font-size: 16px;
-}
-table {
-  width: 100%;
-}
-img {
-  max-width: 100%;
-  height: auto;
-  border-radius: 8px;
-}
-code {
-  padding: 2px 5px;
-  background-color: rgb(var(--gray-light));
-  border-radius: 2px;
-}
-pre {
-  padding: 1.5em;
-  border-radius: 8px;
-}
-pre > code {
-  all: unset;
-}
-blockquote {
-  border-left: 4px solid var(--accent);
-  padding: 0 0 0 20px;
-  margin: 0;
-  font-size: 1.333em;
-}
-hr {
-  border: none;
-  border-top: 1px solid rgb(var(--gray-light));
-}
-@media (max-width: 720px) {
-  body {
-    font-size: 18px;
-  }
+.stickyContainer {
+  position: relative;
 }
 
-.sr-only {
-  border: 0;
-  padding: 0;
-  margin: 0;
-  position: absolute !important;
-  height: 1px;
-  width: 1px;
-  overflow: hidden;
-  /* IE6, IE7 - a 0 height clip, off to the bottom right of the visible 1px box */
-  clip: rect(1px 1px 1px 1px);
-  /* maybe deprecated but we need to support legacy browsers */
-  clip: rect(1px, 1px, 1px, 1px);
-  /* modern browsers, clip-path works inwards from each corner */
-  clip-path: inset(50%);
-  /* added line to stop words getting smushed together (as they go onto separate lines and some screen readers do not understand line feeds as a space */
-  white-space: nowrap;
-}
-
-/* ========================================
-   Animated Gradient Blob Backgrounds
-   ======================================== */
-
-.blob-container {
-  position: absolute;
+.stickyContent {
+  position: sticky;
   inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
 }
 
-.blob {
+/* Debug styles */
+.Debug {
+  outline: 1px dashed rgba(255, 255, 255, 0.33);
+}
+
+.Debug:after {
+  content: "StickyScrollScene";
   position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.5;
-  will-change: transform;
-  animation-timing-function: ease-in-out;
+  left: 0;
+  top: 0;
+  background: rgba(255, 255, 255, 0.33);
+  color: black;
+  font-size: 10px;
+  padding: 5px;
 }
 
-.blob-1 {
-  width: 50vw;
-  height: 50vw;
-  max-width: 600px;
-  max-height: 600px;
-  top: -10%;
-  left: -10%;
-  animation: blob-float-1 25s ease-in-out infinite,
-    blob-pulse 8s ease-in-out infinite;
-}
-
-.blob-2 {
-  width: 45vw;
-  height: 45vw;
-  max-width: 500px;
-  max-height: 500px;
-  bottom: -15%;
-  right: -10%;
-  animation: blob-float-2 30s ease-in-out infinite,
-    blob-pulse 10s ease-in-out infinite 2s;
-}
-
-.blob-3 {
-  width: 35vw;
-  height: 35vw;
-  max-width: 400px;
-  max-height: 400px;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  animation: blob-float-3 20s ease-in-out infinite,
-    blob-pulse 6s ease-in-out infinite 4s;
-}
-
-/* Keyframe animations for smooth floating movement */
-@keyframes blob-float-1 {
-  0%,
-  100% {
-    transform: translate(0, 0) scale(1);
-  }
-  25% {
-    transform: translate(10%, 15%) scale(1.1);
-  }
-  50% {
-    transform: translate(5%, 25%) scale(0.95);
-  }
-  75% {
-    transform: translate(-5%, 10%) scale(1.05);
-  }
-}
-
-@keyframes blob-float-2 {
-  0%,
-  100% {
-    transform: translate(0, 0) scale(1);
-  }
-  25% {
-    transform: translate(-15%, -10%) scale(1.05);
-  }
-  50% {
-    transform: translate(-5%, -20%) scale(1.1);
-  }
-  75% {
-    transform: translate(10%, -5%) scale(0.95);
-  }
-}
-
-@keyframes blob-float-3 {
-  0%,
-  100% {
-    transform: translate(-50%, -50%) scale(1) rotate(0deg);
-  }
-  33% {
-    transform: translate(-40%, -60%) scale(1.15) rotate(120deg);
-  }
-  66% {
-    transform: translate(-60%, -40%) scale(0.9) rotate(240deg);
-  }
-}
-
-/* Pulse animation for subtle breathing effect */
-@keyframes blob-pulse {
-  0%,
-  100% {
-    opacity: 0.4;
-  }
-  50% {
-    opacity: 0.6;
-  }
-}
-
-button {
-  font-family: "Atkinson", sans-serif;
-  font-size: 0.75rem;
-}
-
-/* ========================================
-   Liquid Glass Button Hover Effect
-   ======================================== */
-
-button:hover {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.15),
-    rgba(255, 255, 255, 0.08)
-  ) !important;
-  border-color: rgba(255, 255, 255, 0.3) !important;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 0 20px rgba(255, 255, 255, 0.1) !important;
-  transform: translateY(-2px);
-}
-
-button:active {
-  transform: translateY(0px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
-}
-
-/* ========================================
-   WebGPU Canvas - Full Viewport
-   ======================================== */
-
-#gl {
-  width: 100% !important;
-  height: 100% !important;
-  display: block;
-  position: absolute;
-  inset: 0;
+.ViewportScrollScene:after {
+  content: "ViewportScrollScene";
 }
