@@ -1,6 +1,6 @@
 ---
 import BaseHead from '../components/BaseHead.astro';
-import LandingPageVol2 from '../components/LandingPageVol2';
+import LandingPage from '../components/LandingPage';
 import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
 ---
 
@@ -11,7 +11,7 @@ import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
 	</head>
 	<body>
 		<div id="landing-root">
-			<LandingPageVol2 client:only="react" />
+			<LandingPage client:only="react" />
 		</div>
 	</body>
 </html>
