@@ -16,7 +16,7 @@ export function ScrollAnimatedSection({
   style = {},
 }: ScrollAnimatedSectionProps) {
   const ref = useRef<HTMLElement>(null);
-  const scrollOffset = useScrollProgress();
+  const { global: scrollOffset } = useScrollProgress();
 
   useEffect(() => {
     if (!ref.current) return;

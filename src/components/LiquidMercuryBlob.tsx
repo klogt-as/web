@@ -78,16 +78,13 @@ export const LiquidMercuryBlob = ({
   }));
   const { width: viewportWidth, height: viewportHeight } = viewport;
   const meshRef = useRef<Mesh>(null);
-  const isMobile = useIsMobile();
 
   // Initialize refs with base values - will be updated in useFrame
   const dynamicMovementRange = useRef(0.4); // Start with tight movement
   const dynamicBlendFactor = useRef(0.35); // Start with liquid blend
   const currentMorphFactor = useRef(0); // 0 = floating, 1 = triangle formation
 
-  const activeCount = isMobile
-    ? 3
-    : Math.min(CONFIG.spheres.length, MAX_SPHERES);
+  const activeCount = Math.min(CONFIG.spheres.length, MAX_SPHERES);
 
   const material = useMemo(() => {
     // Pack data into uniforms (fixed length, WebGL-friendly)
@@ -299,7 +296,7 @@ export const LiquidMercuryBlob = ({
     mat.dithering = true;
 
     return mat;
-  }, [activeCount, isMobile, size.width, size.height]);
+  }, [activeCount, size.width, size.height]);
 
   useFrame((state) => {
     // Read scrollProgress from ref - this updates every frame

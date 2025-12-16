@@ -1,9 +1,9 @@
 import { useRef, useEffect } from "react";
 import { useScrollProgress } from "../hooks/useScrollProgress";
 
-export function ScrollIndicator() {
+export default function ScrollIndicator() {
   const ref = useRef<HTMLDivElement>(null);
-  const scrollOffset = useScrollProgress();
+  const { global: scrollOffset } = useScrollProgress();
 
   useEffect(() => {
     if (!ref.current) return;
@@ -70,7 +70,7 @@ export function ScrollIndicator() {
         </svg>
 
         {/* Text */}
-        <p style={styles.text}>Scroll ned</p>
+        {/* <p style={styles.text}>Scroll ned</p> */}
       </div>
 
       {/* Add CSS animation keyframes */}

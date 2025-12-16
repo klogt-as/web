@@ -8,11 +8,13 @@ import { useFrame } from "@react-three/fiber";
 import { Suspense, useEffect, useRef, useState } from "react";
 import type { JSX } from "react/jsx-runtime";
 import { useIsMobile } from "../hooks/useIsMobile";
+import { useScrollProgress } from "../hooks/useScrollProgress";
 import { AnimatedHeroSection } from "./AnimatedHeroSection";
 import LiquidButton from "./LiquidButton";
 import { LiquidMercuryBlob } from "./LiquidMercuryBlob";
 import LoadingOverlay from "./LoadingOverlay";
 import Logo from "./Logo";
+import ScrollIndicator from "./ScrollIndicator";
 
 interface HeroSectionData {
   id: string;
@@ -28,57 +30,68 @@ interface HeroSectionProps {
 }
 
 function ExperienceSection() {
-  const data: HeroSectionData = {
-    id: "hero-3",
-    label: "Erfaring",
-    title: "Over et tiår med erfaring.",
-    text: "Med over ti års praktisk erfaring har jeg jobbet på tvers av offentlig og privat sektor, og hjulpet organisasjoner med å transformere komplekse behov til tydelige, funksjonelle og sikre digitale løsninger.",
-    accent: "#1d1d1d",
-  };
-
   const isMobile = useIsMobile();
+  const sectionRef = useRef<HTMLDivElement>(null);
+
+  // Get section-specific scroll progress using the ref
+  const { section: sectionProgress } = useScrollProgress(sectionRef);
 
   const companies = [
-    "BRREG",
-    "Skatteetaten",
-    "Norsk Helsenett",
-    "Helsedirektoratet",
-    "No Isolation",
+    { name: "BRØNNØYSUNDREGISTRENE", strength: 0.2 },
+    { name: "RØDE KORS", strength: 0.1 },
+    { name: "FREELANCE", strength: 0.1 },
+    { name: "SOS-BARNEBYER", strength: 0.1 },
+    { name: "NORSK HELSENETT", strength: 0.15 },
+    { name: "HELSEDIREKTORATET", strength: 0.25 },
+    { name: "NO ISOLATION", strength: 0.25 },
+    { name: "SKATTEETATEN", strength: 0.35 },
   ];
 
-  // Create multiple repeating rows for continuous effect
-  const repeatedCompanies = [...companies, ...companies, ...companies];
+  // Create offset arrays for each row so different companies appear vertically
+  const getOffsetCompanies = (offset: number) => {
+    const rotated = [...companies.slice(offset), ...companies.slice(0, offset)];
+    return [...rotated, ...rotated, ...rotated];
+  };
 
-  // Calculate diagonal movement based on scroll progress
-  const movement = 200; // Adjust multiplier for speed
+  const row1Companies = getOffsetCompanies(0);
+  const row2Companies = getOffsetCompanies(2);
+  const row3Companies = getOffsetCompanies(4);
 
   const styles: Record<string, React.CSSProperties | any> = {
     experienceSection: {
-      minHeight: "100vh",
-      position: "sticky" as const,
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      background: "#000",
-      zIndex: 1000,
-      top: 0,
+      padding: "unset",
+      borderTop: "1px solid var(--font-color-light-dark)",
     },
-    content: {
-      position: "absolute" as const,
-      inset: "0px",
-      maxWidth: "1680px",
-      width: "100%",
-      margin: "0 auto",
+    stickyContainer: {
+      position: "relative" as const,
+      height: "500vh",
+    },
+    stickyContent: {
+      position: "sticky" as const,
+      top: 0,
+      height: "100vh",
+      background: "#000",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
+      overflow: "hidden",
+    },
+    grid: {
+      display: "grid",
+      gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+      width: "100%",
+      height: "100%",
+    },
+    leftColumn: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "0 var(--pad-x)",
+      borderRight: "1px solid var(--font-color-light-dark)",
     },
     textContent: {
-      maxWidth: 720,
+      maxWidth: 600,
       width: "100%",
-      zIndex: 10,
-      position: "relative" as const,
     },
     chipRow: {
       display: "flex",
@@ -99,46 +112,48 @@ function ExperienceSection() {
       fontSize: 12,
       color: "var(--font-color-subtile)",
     },
-    title: (isMobile: boolean) => ({
-      lineHeight: 1.1,
+    title: {
       marginTop: "1rem",
       marginBottom: "1rem",
       fontWeight: 600,
-    }),
-    text: (isMobile: boolean) => ({
-      opacity: 0.85,
-      lineHeight: 1.7,
-      marginBottom: 24,
-    }),
-    bannerContainer: {
-      position: "absolute" as const,
-      top: 0,
-      left: 0,
-      width: "100%",
-      height: "100%",
-      overflow: "hidden",
-      pointerEvents: "none" as const,
-      zIndex: 1,
+      fontSize: isMobile ? "2rem" : "clamp(2rem, 5vw, 3.8rem)",
     },
-    bannerWrapper: {
+    text: {
+      opacity: 0.85,
+      marginBottom: 24,
+      fontSize: isMobile ? "0.9rem" : "1rem",
+    },
+    rightColumn: {
+      position: "relative" as const,
+      overflow: isMobile ? "visible" : "hidden",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    diagonalScrollContainer: {
       position: "absolute" as const,
       top: "-50%",
       right: "-50%",
       width: "200%",
-      height: "200%",
-      transform: `translate(${movement}%, ${movement}%) rotate(-35deg)`,
-      transition: "none",
+      height: isMobile ? "160%" : "200%",
+      transform: "rotate(-35deg)",
+      display: "flex",
+      flexDirection: "column" as const,
+      gap: isMobile ? "2rem" : "3rem",
+      justifyContent: "center",
+      pointerEvents: "none" as const,
+      transition: "transform 0.1s linear",
     },
-    bannerRow: {
+    diagonalRow: {
       display: "flex",
       gap: isMobile ? "4rem" : "6rem",
-      marginBottom: isMobile ? "2rem" : "3rem",
       whiteSpace: "nowrap" as const,
+      justifyContent: "center",
+      transform: `translateX(${sectionProgress * -200}%)`,
     },
     companyName: {
       fontSize: isMobile ? "3rem" : "5rem",
       fontWeight: 700,
-      opacity: 0.08,
       letterSpacing: "-0.02em",
       textTransform: "uppercase" as const,
     },
@@ -146,47 +161,85 @@ function ExperienceSection() {
 
   return (
     <section style={styles.experienceSection}>
-      {/* Diagonal scrolling banner */}
-      <div style={styles.bannerContainer}>
-        <div style={styles.bannerWrapper}>
-          <div style={styles.bannerRow}>
-            {repeatedCompanies.map((company, idx) => (
-              <span key={`row1-${idx}`} style={styles.companyName}>
-                {company}
-              </span>
-            ))}
-          </div>
-          <div style={styles.bannerRow}>
-            {repeatedCompanies.map((company, idx) => (
-              <span key={`row2-${idx}`} style={styles.companyName}>
-                {company}
-              </span>
-            ))}
-          </div>
-          <div style={styles.bannerRow}>
-            {repeatedCompanies.map((company, idx) => (
-              <span key={`row3-${idx}`} style={styles.companyName}>
-                {company}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
+      <div ref={sectionRef} style={styles.stickyContainer}>
+        <div style={styles.stickyContent}>
+          <div style={styles.grid}>
+            {/* Left: Sticky text */}
+            <div style={styles.leftColumn}>
+              <div style={styles.textContent}>
+                {/* Chip Row */}
+                <div style={styles.textContent}>
+                  {/* Chip Row */}
+                  <div style={styles.chipRow}>
+                    <span style={styles.chip}>Erfaring</span>
+                    <span style={styles.chipIndex}>03</span>
+                  </div>
 
-      {/* Content */}
-      <div style={styles.content}>
-        <div style={styles.textContent}>
-          {/* Chip Row */}
-          <div style={styles.chipRow}>
-            <span style={styles.chip}>{data.label}</span>
-            <span style={styles.chipIndex}>{String(3).padStart(2, "0")}</span>
+                  {/* Title */}
+                  <h2 style={styles.title}>Over ti års erfaring</h2>
+
+                  {/* Text */}
+                  <p style={styles.text}>
+                    Med over ti års praktisk erfaring har jeg jobbet på tvers av
+                    både offentlig og privat sektor &mdash; og hjulpet
+                    virksomheter med å gjøre komplekse behov om til tydelige,
+                    funksjonelle og sikre digitale løsninger.
+                  </p>
+                  <p style={styles.text}>
+                    Jeg har hatt sentrale roller i prosjekter for store norske
+                    institusjoner og innovative selskaper, der jeg har bidratt
+                    til å bygge kritisk digital infrastruktur og brukersentrerte
+                    løsninger som gir målbar verdi.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Diagonal scrolling text */}
+            <div style={styles.rightColumn}>
+              <div style={styles.diagonalScrollContainer}>
+                <div style={styles.diagonalRow}>
+                  {row1Companies.map((company, idx) => (
+                    <span
+                      key={`row1-${idx}`}
+                      style={{
+                        ...styles.companyName,
+                        opacity: company.strength,
+                      }}
+                    >
+                      {company.name}
+                    </span>
+                  ))}
+                </div>
+                <div style={styles.diagonalRow}>
+                  {row2Companies.map((company, idx) => (
+                    <span
+                      key={`row2-${idx}`}
+                      style={{
+                        ...styles.companyName,
+                        opacity: company.strength,
+                      }}
+                    >
+                      {company.name}
+                    </span>
+                  ))}
+                </div>
+                <div style={styles.diagonalRow}>
+                  {row3Companies.map((company, idx) => (
+                    <span
+                      key={`row3-${idx}`}
+                      style={{
+                        ...styles.companyName,
+                        opacity: company.strength,
+                      }}
+                    >
+                      {company.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
-
-          {/* Title */}
-          <h2 style={styles.title(isMobile)}>{data.title}</h2>
-
-          {/* Text */}
-          <p style={styles.text(isMobile)}>{data.text}</p>
         </div>
       </div>
     </section>
@@ -234,14 +287,12 @@ function HeroSection({ data, index }: HeroSectionProps) {
       color: "var(--font-color-subtile)",
     },
     title: (isMobile: boolean) => ({
-      lineHeight: 1.1,
       marginTop: "1rem",
       marginBottom: "1rem",
       fontWeight: 600,
     }),
     text: (isMobile: boolean) => ({
       opacity: 0.85,
-      lineHeight: 1.7,
       marginBottom: 24,
     }),
   };
@@ -278,7 +329,7 @@ function ScrollProgressUpdater({
   onProgressChange,
 }: {
   scrollState: any;
-  progressRef: React.MutableRefObject<number>;
+  progressRef: React.RefObject<number>;
   onProgressChange: (progress: number) => void;
 }) {
   useFrame(() => {
@@ -333,6 +384,7 @@ function StickySection() {
           >
             <HeroSection data={heroSection2Data} index={2} />
           </AnimatedHeroSection>
+          <ScrollIndicator />
         </div>
       </div>
       <UseCanvas>
@@ -374,21 +426,17 @@ function ContactSection() {
       zIndex: 1000,
     }),
     contactContent: (isMobile: boolean) => ({
-      maxWidth: isMobile ? "100%" : 720,
+      maxWidth: isMobile ? 380 : 720,
       width: "100%",
       textAlign: "center" as const,
       display: "flex",
       flexDirection: "column" as const,
       alignItems: "center",
-      gap: isMobile ? 24 : 32,
     }),
     contactTitle: (isMobile: boolean) => ({
-      lineHeight: 1.1,
-      fontWeight: 600,
       margin: 0,
     }),
     contactSubtitle: (isMobile: boolean) => ({
-      lineHeight: 1.5,
       margin: 0,
     }),
     contactEmail: (isMobile: boolean) => ({
@@ -440,14 +488,9 @@ function ContactSection() {
         <h2 style={styles.contactTitle(isMobile)}>
           Klar til å realisere din visjon?
         </h2>
-        {/* <a
-        href="mailto:markus.remmen@klogt.no"
-        style={styles.contactButton(isMobile)}
-      >
-        Kontakt oss
-        <span style={{ fontSize: 16, marginLeft: 8 }}>→</span>
-      </a> */}
-        <LiquidButton label="Kontakt oss" />
+        <h2>
+          <a href="mailto:hei@klogt.no">hei@klogt.no</a>
+        </h2>
       </div>
       <footer style={styles.contactFooter}>
         &copy; {today.getFullYear()} Klogt AS

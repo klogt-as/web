@@ -6,6 +6,7 @@
 
   --font-color: var(--secondary-color);
   --font-color-subtile: #fffcef99;
+  --font-color-light-dark: #050608;
 
   --pad-y: 0;
   --pad-x: clamp(6vw, 7vw, 8vw);
@@ -43,6 +44,7 @@ html {
   font-family: "Atkinson", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  line-height: 1.7;
 }
 
 html,
@@ -69,6 +71,40 @@ h4 {
 }
 h5 {
   font-size: clamp(1.1rem, 1.5vw, 1.4rem);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  line-height: 1.1;
+}
+
+@media (max-width: 720px) {
+  h1,
+  h2,
+  h3,
+  h4 {
+    line-height: 1.25;
+  }
+}
+
+a {
+  color: var(--primary-color);
+  text-decoration: none;
+
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 0% 8px; /* underline size */
+  background-position: 0 95%; /* underline position */
+  background-repeat: no-repeat;
+
+  transition: color 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-size 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+a:hover {
+  color: var(--font-color);
+  background-size: 100% 8px;
 }
 
 .stickyContainer {

@@ -27,6 +27,7 @@ export function AnimatedHeroSection({
       style={{
         position: "absolute",
         inset: 0,
+        pointerEvents: isVisible ? "auto" : "none",
       }}
     >
       {children}
