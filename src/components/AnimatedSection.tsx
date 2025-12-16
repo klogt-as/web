@@ -1,18 +1,18 @@
 import { motion } from "motion/react";
 
-interface AnimatedHeroSectionProps {
+interface Props {
   children: React.ReactNode;
   scrollProgress: number;
   visibleFrom: number;
   visibleTo: number;
 }
 
-export function AnimatedHeroSection({
+export function AnimatedSection({
   children,
   scrollProgress,
   visibleFrom,
   visibleTo,
-}: AnimatedHeroSectionProps) {
+}: Props) {
   // Simple visibility check
   const isVisible =
     scrollProgress >= visibleFrom && scrollProgress <= visibleTo;
