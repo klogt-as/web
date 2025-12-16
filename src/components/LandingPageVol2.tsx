@@ -27,6 +27,172 @@ interface HeroSectionProps {
   index: number;
 }
 
+function ExperienceSection() {
+  const data: HeroSectionData = {
+    id: "hero-3",
+    label: "Erfaring",
+    title: "Over et tiår med erfaring.",
+    text: "Med over ti års praktisk erfaring har jeg jobbet på tvers av offentlig og privat sektor, og hjulpet organisasjoner med å transformere komplekse behov til tydelige, funksjonelle og sikre digitale løsninger.",
+    accent: "#1d1d1d",
+  };
+
+  const isMobile = useIsMobile();
+
+  const companies = [
+    "BRREG",
+    "Skatteetaten",
+    "Norsk Helsenett",
+    "Helsedirektoratet",
+    "No Isolation",
+  ];
+
+  // Create multiple repeating rows for continuous effect
+  const repeatedCompanies = [...companies, ...companies, ...companies];
+
+  // Calculate diagonal movement based on scroll progress
+  const movement = 200; // Adjust multiplier for speed
+
+  const styles: Record<string, React.CSSProperties | any> = {
+    experienceSection: {
+      minHeight: "100vh",
+      position: "sticky" as const,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      background: "#000",
+      zIndex: 1000,
+      top: 0,
+    },
+    content: {
+      position: "absolute" as const,
+      inset: "0px",
+      maxWidth: "1680px",
+      width: "100%",
+      margin: "0 auto",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    textContent: {
+      maxWidth: 720,
+      width: "100%",
+      zIndex: 10,
+      position: "relative" as const,
+    },
+    chipRow: {
+      display: "flex",
+      gap: 8,
+      marginBottom: 16,
+      alignItems: "center",
+    },
+    chip: {
+      fontSize: 12,
+      textTransform: "uppercase" as const,
+      letterSpacing: 2,
+      padding: "4px 10px",
+      borderRadius: 999,
+      border: "1px solid rgba(255,255,255,0.16)",
+      background: "rgba(0, 0, 0, 0.2)",
+    },
+    chipIndex: {
+      fontSize: 12,
+      color: "var(--font-color-subtile)",
+    },
+    title: (isMobile: boolean) => ({
+      lineHeight: 1.1,
+      marginTop: "1rem",
+      marginBottom: "1rem",
+      fontWeight: 600,
+    }),
+    text: (isMobile: boolean) => ({
+      opacity: 0.85,
+      lineHeight: 1.7,
+      marginBottom: 24,
+    }),
+    bannerContainer: {
+      position: "absolute" as const,
+      top: 0,
+      left: 0,
+      width: "100%",
+      height: "100%",
+      overflow: "hidden",
+      pointerEvents: "none" as const,
+      zIndex: 1,
+    },
+    bannerWrapper: {
+      position: "absolute" as const,
+      top: "-50%",
+      right: "-50%",
+      width: "200%",
+      height: "200%",
+      transform: `translate(${movement}%, ${movement}%) rotate(-35deg)`,
+      transition: "none",
+    },
+    bannerRow: {
+      display: "flex",
+      gap: isMobile ? "4rem" : "6rem",
+      marginBottom: isMobile ? "2rem" : "3rem",
+      whiteSpace: "nowrap" as const,
+    },
+    companyName: {
+      fontSize: isMobile ? "3rem" : "5rem",
+      fontWeight: 700,
+      opacity: 0.08,
+      letterSpacing: "-0.02em",
+      textTransform: "uppercase" as const,
+    },
+  };
+
+  return (
+    <section style={styles.experienceSection}>
+      {/* Diagonal scrolling banner */}
+      <div style={styles.bannerContainer}>
+        <div style={styles.bannerWrapper}>
+          <div style={styles.bannerRow}>
+            {repeatedCompanies.map((company, idx) => (
+              <span key={`row1-${idx}`} style={styles.companyName}>
+                {company}
+              </span>
+            ))}
+          </div>
+          <div style={styles.bannerRow}>
+            {repeatedCompanies.map((company, idx) => (
+              <span key={`row2-${idx}`} style={styles.companyName}>
+                {company}
+              </span>
+            ))}
+          </div>
+          <div style={styles.bannerRow}>
+            {repeatedCompanies.map((company, idx) => (
+              <span key={`row3-${idx}`} style={styles.companyName}>
+                {company}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div style={styles.content}>
+        <div style={styles.textContent}>
+          {/* Chip Row */}
+          <div style={styles.chipRow}>
+            <span style={styles.chip}>{data.label}</span>
+            <span style={styles.chipIndex}>{String(3).padStart(2, "0")}</span>
+          </div>
+
+          {/* Title */}
+          <h2 style={styles.title(isMobile)}>{data.title}</h2>
+
+          {/* Text */}
+          <p style={styles.text(isMobile)}>{data.text}</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function HeroSection({ data, index }: HeroSectionProps) {
   const isMobile = useIsMobile();
 
@@ -290,9 +456,7 @@ function ContactSection() {
   );
 }
 
-type Props = {};
-
-export default function LandingPageVol2({}: Props) {
+export default function LandingPageVol2() {
   const [isTouch, setTouch] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const isMobile = useIsMobile();
@@ -319,6 +483,7 @@ export default function LandingPageVol2({}: Props) {
         {(bind) => (
           <main {...bind}>
             <StickySection />
+            <ExperienceSection />
             <ContactSection />
           </main>
         )}
