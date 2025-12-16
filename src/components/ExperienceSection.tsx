@@ -56,16 +56,24 @@ export function ExperienceSection() {
     opacity,
   });
 
+  const rightColumnStyle: React.CSSProperties = {
+    position: "relative",
+    overflow: isMobile ? "visible" : "hidden",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  };
+
   const diagonalScrollContainerStyle: React.CSSProperties = {
     position: "absolute",
-    top: "-50%",
+    top: isMobile ? "-100%" : "-50%",
     right: "-50%",
     width: "200%",
     height: isMobile ? "160%" : "200%",
     transform: "rotate(-35deg)",
     display: "flex",
     flexDirection: "column",
-    gap: isMobile ? "2rem" : "3rem",
+    gap: isMobile ? "0" : "3rem",
     justifyContent: "center",
     pointerEvents: "none",
     transition: "transform 0.1s linear",
@@ -110,7 +118,7 @@ export function ExperienceSection() {
             </div>
 
             {/* Right: Diagonal scrolling text */}
-            <div style={styles.rightColumn}>
+            <div style={rightColumnStyle}>
               <div style={diagonalScrollContainerStyle}>
                 <div style={diagonalRowStyle}>
                   {row1Companies.map((company, idx) => (
@@ -180,12 +188,5 @@ const styles: Record<string, React.CSSProperties> = {
   textContent: {
     maxWidth: 600,
     width: "100%",
-  },
-  rightColumn: {
-    position: "relative",
-    overflow: "hidden",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
   },
 };
