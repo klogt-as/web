@@ -3,9 +3,11 @@ import react from "@astrojs/react";
 import sitemap from "@astrojs/sitemap";
 import { defineConfig } from "astro/config";
 
+const isGithubPages = process.env.GITHUB_PAGES === "true";
+
 // https://astro.build/config
 export default defineConfig({
-  site: "https://klogt-as.github.io",
-  base: "/web",
+  site: "https://klogt.no",
+  base: isGithubPages ? "/web" : "/",
   integrations: [sitemap(), react()],
 });
