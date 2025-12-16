@@ -7,7 +7,7 @@ A modern, interactive landing page for Klogt AS featuring advanced 3D animations
 ## ✨ Features
 
 - 🎨 **3D WebGL Animations** - Interactive liquid mercury blob using Three.js
-- 🔄 **Smooth Scrolling** - Lenis-powered smooth scroll experience
+- 🔄 **Smooth Scrolling** - Smooth scroll experience powered by r3f-scroll-rig
 - 📜 **Scroll-Driven Animations** - Dynamic content reveals based on scroll position
 - 🎭 **Sticky Scroll Scenes** - Immersive scroll-based storytelling
 - 📱 **Fully Responsive** - Optimized for mobile and desktop experiences
@@ -22,8 +22,7 @@ A modern, interactive landing page for Klogt AS featuring advanced 3D animations
 - **[Three.js](https://threejs.org)** - 3D graphics
   - `@react-three/fiber` - React renderer for Three.js
   - `@react-three/drei` - Useful helpers for R3F
-- **[@14islands/r3f-scroll-rig](https://github.com/14islands/r3f-scroll-rig)** - Scroll-based 3D animations
-- **[Lenis](https://github.com/studio-freight/lenis)** - Smooth scrolling library
+- **[@14islands/r3f-scroll-rig](https://github.com/14islands/r3f-scroll-rig)** - Scroll-based 3D animations and smooth scrolling
 - **[Motion](https://motion.dev)** - Animation library
 - **TypeScript** - Type safety
 

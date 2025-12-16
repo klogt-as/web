@@ -15,8 +15,6 @@
     "@astrojs/sitemap": "^3.6.0",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.4.2",
-    "@studio-freight/lenis": "^1.0.42",
-    "@studio-freight/react-lenis": "^0.0.47",
     "astro": "^5.16.4",
     "motion": "^12.23.26",
     "react": "^19.2.1",
