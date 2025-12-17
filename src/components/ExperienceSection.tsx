@@ -73,7 +73,7 @@ export function ExperienceSection() {
     transform: "rotate(-35deg)",
     display: "flex",
     flexDirection: "column",
-    gap: isMobile ? "0" : "3rem",
+    gap: isMobile ? "0" : "2rem",
     justifyContent: "center",
     pointerEvents: "none",
     transition: "transform 0.1s linear",
@@ -110,15 +110,15 @@ export function ExperienceSection() {
                 </p>
                 <p style={textStyle}>
                   Jeg har hatt sentrale roller i prosjekter for store norske
-                  institusjoner og innovative selskaper, der jeg har bidratt til
-                  å bygge kritisk digital infrastruktur og brukersentrerte
-                  løsninger som gir målbar verdi.
+                  virksomheter, der jeg har bidratt til å bygge kritisk digital
+                  infrastruktur og brukersentrerte løsninger som gir målbar
+                  verdi.
                 </p>
               </div>
             </div>
 
             {/* Right: Diagonal scrolling text */}
-            <div style={rightColumnStyle}>
+            <div style={rightColumnStyle} aria-hidden="true">
               <div style={diagonalScrollContainerStyle}>
                 <div style={diagonalRowStyle}>
                   {row1Companies.map((company, idx) => (
