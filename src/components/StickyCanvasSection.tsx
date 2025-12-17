@@ -23,7 +23,7 @@ export function StickyCanvasSection() {
 
   return (
     <section>
-      <div className="stickyContainer" style={{ height: "500vh" }}>
+      <div className="stickyContainer" style={{ height: "300vh" }}>
         <div ref={el} className="stickyContent">
           <header>
             <Logo />

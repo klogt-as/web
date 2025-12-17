@@ -166,7 +166,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   stickyContainer: {
     position: "relative",
-    height: "500vh",
+    height: "300vh",
   },
   stickyContent: {
     position: "sticky",
