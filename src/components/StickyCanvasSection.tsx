@@ -38,7 +38,7 @@ export function StickyCanvasSection() {
               index={1}
               title={
                 <>
-                  Flyter ideene dine?
+                  Flyter idéene dine?
                   <br />
                   Vi gjør dem konkrete.
                 </>
