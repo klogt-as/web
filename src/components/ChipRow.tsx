@@ -22,8 +22,9 @@ const styles: Record<string, React.CSSProperties> = {
   chip: {
     fontSize: 12,
     textTransform: "uppercase",
+    lineHeight: 1,
     letterSpacing: 2,
-    padding: "4px 10px",
+    padding: "8px 10px",
     borderRadius: 999,
     border: "1px solid rgba(255,255,255,0.16)",
     background: "rgba(0, 0, 0, 0.2)",

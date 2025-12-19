@@ -1,11 +1,12 @@
+import type React from "react";
 import { useIsMobile } from "../hooks/useIsMobile";
 import { ChipRow } from "./ChipRow";
 
 interface HeroCanvasSectionProps {
   label: string;
   index: number;
-  title: string;
-  text: string;
+  title: string | React.ReactNode;
+  text: string | React.ReactNode;
 }
 
 export function HeroCanvasSection({
@@ -57,7 +58,7 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "center",
   },
   textContent: {
-    maxWidth: 840,
+    maxWidth: 940,
     width: "100%",
   },
 };
