@@ -46,8 +46,8 @@ export function StickyCanvasSection() {
               text={
                 <>
                   Med riktig teknologi og erfaring former vi visjonene dine til
-                  digitale opplevelser som engasjerer, virker og vokser. Din idé
-                  fortjener å bli virkeliggjort.
+                  digitale opplevelser som engasjerer, vokser og fungerer. Din
+                  idé fortjener å bli virkeliggjort.
                 </>
               }
             />
@@ -60,14 +60,20 @@ export function StickyCanvasSection() {
             <HeroCanvasSection
               label="Realisering"
               index={2}
-              title={<>Fra visjon til virkelighet.</>}
+              title={
+                <>
+                  Fra visjon til en
+                  <br />
+                  varende virkelighet
+                </>
+              }
               text={
                 <>
                   Vi former digitale løsninger som vokser med din ambisjon.
                   Gjennom innovativ
                   <br />
                   teknologi og gjennomtenkt design skaper vi opplevelser som
-                  holder.
+                  varer.
                 </>
               }
             />

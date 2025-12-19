@@ -31,7 +31,11 @@ export function ContactSection() {
   return (
     <section style={sectionStyle}>
       <div style={contentStyle}>
-        <h2 style={titleStyle}>Klar til å realisere din visjon?</h2>
+        <h2 style={titleStyle}>
+          Klar til å realisere
+          <br />
+          din visjon?
+        </h2>
         <h3>
           <a href="mailto:hei@klogt.no">hei@klogt.no</a>
         </h3>
