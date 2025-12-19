@@ -7,6 +7,46 @@ const easeOutCubic = (t: number): number => {
   return 1 - Math.pow(1 - clamped, 3);
 };
 
+// localStorage key for caching
+const CACHE_KEY = "klogt-assets-loaded";
+
+/**
+ * Check if assets were loaded within the cache duration
+ * @param durationDays - Cache duration in days
+ * @returns true if cache is valid, false otherwise
+ */
+const checkAssetsCached = (durationDays: number): boolean => {
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (!cached) return false;
+
+    const { timestamp } = JSON.parse(cached);
+    const cacheExpiry = timestamp + durationDays * 24 * 60 * 60 * 1000;
+
+    return Date.now() < cacheExpiry;
+  } catch {
+    // If there's any error parsing cache, treat as not cached
+    return false;
+  }
+};
+
+/**
+ * Save assets loaded timestamp to localStorage
+ */
+const saveAssetsLoaded = (): void => {
+  try {
+    localStorage.setItem(
+      CACHE_KEY,
+      JSON.stringify({
+        loaded: true,
+        timestamp: Date.now(),
+      })
+    );
+  } catch {
+    // Silently fail if localStorage is not available
+  }
+};
+
 interface LoadingOverlayProps {
   /** Minimum display time in ms before the overlay can disappear */
   minDisplayTime?: number;
@@ -14,6 +54,10 @@ interface LoadingOverlayProps {
   slideDelay?: number;
   /** Duration of the slide animation in ms */
   slideDuration?: number;
+  /** Enable/disable caching. Set to false to always show loading (default: true) */
+  enableCache?: boolean;
+  /** Cache duration in days when cache is enabled (default: 1 day) */
+  cacheDurationDays?: number;
   /** Callback when overlay starts to slide away */
   onSlideStart?: () => void;
   /** Callback when overlay has completely disappeared */
@@ -36,11 +80,18 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
   minDisplayTime = 1500,
   slideDelay = 400,
   slideDuration = 800,
+  enableCache = true,
+  cacheDurationDays = 1,
   onSlideStart,
   onComplete,
 }) => {
+  // Check if assets are cached - if so, we'll start at 100% instead of hiding
+  const isCached = enableCache && checkAssetsCached(cacheDurationDays);
+
   const { progress: assetProgress, active, total } = useProgress();
-  const [displayedProgress, setDisplayedProgress] = useState(0);
+  const [displayedProgress, setDisplayedProgress] = useState(
+    isCached ? 100 : 0
+  );
   const [isVisible, setIsVisible] = useState(true);
   const [isSliding, setIsSliding] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
@@ -90,8 +141,11 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
     return Math.min(100, easeOutCubic(elapsed / minDisplayTime) * 100);
   }, [assetProgress, minDisplayTime, isAssetTracked, canFinish]);
 
-  // Animate the displayed progress smoothly
+  // Animate the displayed progress smoothly (skip if cached)
   useEffect(() => {
+    // If cached, we're already at 100%, no need to animate
+    if (isCached) return;
+
     const animate = () => {
       const target = getTargetProgress();
 
@@ -125,10 +179,16 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [getTargetProgress]);
+  }, [getTargetProgress, isCached]);
 
   // Handle completion when progress reaches 100%
   useEffect(() => {
+    // If cached, trigger completion immediately (no minDisplayTime wait)
+    if (isCached && displayedProgress >= 100 && !isComplete) {
+      setIsComplete(true);
+      return;
+    }
+
     // Only allow completion if loading is actually done
     if (!canFinish) return;
 
@@ -143,11 +203,16 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
 
       return () => clearTimeout(timer);
     }
-  }, [displayedProgress, isComplete, minDisplayTime, canFinish]);
+  }, [displayedProgress, isComplete, minDisplayTime, canFinish, isCached]);
 
   // Handle the slide animation when loading is complete
   useEffect(() => {
     if (isComplete && !active) {
+      // Save to cache when loading completes (if caching is enabled)
+      if (enableCache) {
+        saveAssetsLoaded();
+      }
+
       const slideTimer = setTimeout(() => {
         setIsSliding(true);
         onSlideStart?.();
@@ -163,7 +228,15 @@ const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
 
       return () => clearTimeout(slideTimer);
     }
-  }, [isComplete, active, slideDelay, slideDuration, onSlideStart, onComplete]);
+  }, [
+    isComplete,
+    active,
+    slideDelay,
+    slideDuration,
+    onSlideStart,
+    onComplete,
+    enableCache,
+  ]);
 
   // Optional debug logs (dev only) - helps diagnose loading issues
   useEffect(() => {
