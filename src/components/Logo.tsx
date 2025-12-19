@@ -5,23 +5,29 @@ export default function Logo() {
   const isMobile = useIsMobile();
 
   return (
-    <div style={styles.logo(isMobile)}>
-      <img style={styles.img} src={LogoSvg.src} alt="Logo klogt AS" />
-    </div>
+    <nav style={styles.logo(isMobile)}>
+      <a href="/">
+        <img
+          className="logo"
+          style={styles.img}
+          src={LogoSvg.src}
+          alt="Logo klogt AS"
+        />
+      </a>
+    </nav>
   );
 }
 
 const styles: Record<string, React.CSSProperties | any> = {
   logo: (isMobile: boolean) => ({
+    zIndex: 99,
     position: "absolute" as const,
     inset: "0px",
-    maxWidth: "720px",
     width: "100%",
     height: "80px",
-    marginTop: isMobile ? "2rem" : "20vh",
+    marginTop: isMobile ? "2rem" : "8vh",
     marginRight: "auto",
     marginLeft: "auto",
-    filter: "brightness(0.25)",
   }),
   img: {
     height: "50px",

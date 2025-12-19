@@ -78,6 +78,7 @@ export const LiquidMercuryBlob = ({
   }));
   const { width: viewportWidth, height: viewportHeight } = viewport;
   const meshRef = useRef<Mesh>(null);
+  const isMobile = useIsMobile();
 
   // Initialize refs with base values - will be updated in useFrame
   const dynamicMovementRange = useRef(0.4); // Start with tight movement
@@ -126,6 +127,7 @@ export const LiquidMercuryBlob = ({
       uniform float uBlendFactor;
       uniform float uSpeedMultiplier;
       uniform int   uSphereCount;
+      uniform float uIsMobile;
 
       uniform float uRadii[${MAX_SPHERES}];
       uniform float uSpeed[${MAX_SPHERES * 3}];
@@ -188,8 +190,8 @@ export const LiquidMercuryBlob = ({
       }
 
       vec3 calcNormal(vec3 p) {
-        // Smaller eps gives sharper highlights - matches TSL version (0.0001)
-        float eps = 0.0001;
+        // Balanced epsilon for stable normals without artifacts
+        float eps = 0.0005;
         vec2 h = vec2(eps, 0.0);
         float dx = sdf(p + vec3(h.x, h.y, h.y)) - sdf(p - vec3(h.x, h.y, h.y));
         float dy = sdf(p + vec3(h.y, h.x, h.y)) - sdf(p - vec3(h.y, h.x, h.y));
@@ -213,12 +215,13 @@ export const LiquidMercuryBlob = ({
         vec3 hemi = mix(groundColor, skyColor, hemiMix);
 
         vec3 r = reflect(-lightDir, n);
-        float phongValue = pow(max(0.0, dot(v, normalize(r))), 32.0);
-        float fresnel = pow(1.0 - max(0.0, dot(v, n)), 2.0);
+        // Softer specular highlights to reduce white dots on edges
+        float phongValue = pow(max(0.0, dot(v, normalize(r))), 16.0);  // Reduced from 32
+        float fresnel = pow(1.0 - max(0.0, dot(v, n)), 3.0);  // Increased from 2 for softer edge
         vec3 specular = vec3(phongValue) * fresnel;
 
         vec3 lit = ambient * 0.1 + diffuse * 0.5 + hemi * 0.2;
-        vec3 col = vec3(0.1) * lit + specular;
+        vec3 col = vec3(0.1) * lit + specular * 0.5;  // Reduced specular intensity
 
         return col;
       }
@@ -228,9 +231,13 @@ export const LiquidMercuryBlob = ({
         vec2 uv = (vUv * uResolution) * 2.0 - uResolution;
         uv /= uResolution.y;
 
-        float cameraDistance = (uSphereCount <= 3) ? -5.0 : -3.0;
+        float cameraDistance = (uIsMobile > 0.5) ? -4.0 : -2.5;
         vec3 ro = vec3(0.0, 0.0, cameraDistance);
-        vec3 rd = normalize(vec3(uv, 1.0));
+        
+        // Proper FOV-based ray direction to keep spheres circular
+        float fov = 45.0 * 3.14159265 / 180.0; // 45 degrees in radians
+        float focalLength = 1.0 / tan(fov * 0.5);
+        vec3 rd = normalize(vec3(uv, focalLength));
 
         float t = 0.0;
         vec3 p = ro;
@@ -267,6 +274,7 @@ export const LiquidMercuryBlob = ({
         uBlendFactor: { value: 0.35 }, // Start with liquid blend
         uSpeedMultiplier: { value: CONFIG.speedMultiplier },
         uSphereCount: { value: activeCount },
+        uIsMobile: { value: isMobile ? 1.0 : 0.0 },
 
         uRadii: { value: radii },
         uSpeed: { value: speed },
@@ -293,7 +301,7 @@ export const LiquidMercuryBlob = ({
 
     // We do tone mapping manually in the shader, so disable Three.js's
     mat.toneMapped = false;
-    mat.dithering = true;
+    mat.dithering = false; // Disabled to prevent white dots/streaks on edges
 
     return mat;
   }, [activeCount, size.width, size.height]);
@@ -334,6 +342,7 @@ export const LiquidMercuryBlob = ({
     material.uniforms.uBlendFactor.value = dynamicBlendFactor.current;
     material.uniforms.uSphereCount.value = activeCount;
     material.uniforms.uMorphFactor.value = currentMorphFactor.current;
+    material.uniforms.uIsMobile.value = isMobile ? 1.0 : 0.0;
 
     // Update speed multiplier from CONFIG
     material.uniforms.uSpeedMultiplier.value = CONFIG.speedMultiplier;

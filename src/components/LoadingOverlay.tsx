@@ -239,8 +239,7 @@ const styles: Record<string, React.CSSProperties> = {
     pointerEvents: "none",
   },
   percentageText: {
-    color: "#ffffff",
-    fontSize: "clamp(4rem, 15vw, 8rem)",
+    fontSize: "clamp(4rem, 15vw, 6rem)",
     fontWeight: 700,
     letterSpacing: "-0.02em",
     userSelect: "none",

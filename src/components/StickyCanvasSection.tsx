@@ -34,7 +34,7 @@ export function StickyCanvasSection() {
             visibleTo={0.5}
           >
             <HeroCanvasSection
-              label="Realisering"
+              label="Transformasjon"
               index={1}
               title="Ideer flyter. Vi gjør dem konkrete."
               text="Med riktig teknologi og erfaring former vi visjonene dine til digitale opplevelser som engasjerer, virker og vokser. Din idé fortjener å bli virkeliggjort."
@@ -46,7 +46,7 @@ export function StickyCanvasSection() {
             visibleTo={1.0}
           >
             <HeroCanvasSection
-              label="Transformasjon"
+              label="Realisering"
               index={2}
               title="Fra visjon til virkelighet."
               text="Vi former digitale løsninger som vokser med din ambisjon. Gjennom innovativ teknologi og gjennomtenkt design skaper vi opplevelser som holder."

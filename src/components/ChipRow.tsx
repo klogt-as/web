@@ -7,7 +7,7 @@ export function ChipRow({ label, index }: ChipRowProps) {
   return (
     <div style={styles.chipRow}>
       <span style={styles.chip}>{label}</span>
-      <span style={styles.chipIndex}>{String(index).padStart(2, "0")}</span>
+      <span style={styles.chipIndex}>// {String(index).padStart(2, "0")}</span>
     </div>
   );
 }
@@ -27,6 +27,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 999,
     border: "1px solid rgba(255,255,255,0.16)",
     background: "rgba(0, 0, 0, 0.2)",
+    color: "var(--secondary-color)",
   },
   chipIndex: {
     fontSize: 12,

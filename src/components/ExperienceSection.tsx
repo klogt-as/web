@@ -54,6 +54,7 @@ export function ExperienceSection() {
     letterSpacing: "-0.02em",
     textTransform: "uppercase",
     opacity,
+    color: "var(--secondary-color)",
   });
 
   const rightColumnStyle: React.CSSProperties = {
@@ -73,7 +74,7 @@ export function ExperienceSection() {
     transform: "rotate(-35deg)",
     display: "flex",
     flexDirection: "column",
-    gap: isMobile ? "0" : "2rem",
+    gap: isMobile ? "0" : "0",
     justifyContent: "center",
     pointerEvents: "none",
     transition: "transform 0.1s linear",

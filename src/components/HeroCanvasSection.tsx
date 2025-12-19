@@ -57,7 +57,7 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "center",
   },
   textContent: {
-    maxWidth: 720,
+    maxWidth: 840,
     width: "100%",
   },
 };
